@@ -1,0 +1,14 @@
+interview_agent:
+  enabled: false
+  mode: "text"
+  max_followup_rounds: 2
+  summary_enabled: true
+  score_dimensions:
+    - "logic"
+    - "completeness"
+    - "expression"
+
+question_generation:
+  enabled: false
+  default_difficulty: "medium"
+  max_questions_per_document: 10

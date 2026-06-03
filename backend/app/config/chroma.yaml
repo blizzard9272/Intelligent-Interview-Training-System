@@ -1,0 +1,10 @@
+storage:
+  persist_directory: "./storage/chroma"
+  collection_name: "document_chunks"
+
+retrieval:
+  default_top_k: 4
+  max_top_k: 8
+  metadata_filters:
+    require_user_id: true
+    require_knowledge_base_id: true

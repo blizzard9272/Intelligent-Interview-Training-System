@@ -1,0 +1,16 @@
+retrieval:
+  top_k: 4
+  enable_rerank: false
+  enable_hybrid_retrieval: false
+  min_reference_count: 1
+
+chunking:
+  chunk_size: 700
+  chunk_overlap: 100
+  markdown_respect_headers: true
+  pdf_split_by_page: true
+
+answering:
+  include_references: true
+  fallback_when_empty: true
+  max_reference_snippet_length: 300

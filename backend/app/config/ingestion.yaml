@@ -1,0 +1,18 @@
+supported_types:
+  - "txt"
+  - "md"
+  - "pdf"
+
+upload:
+  max_file_size_mb: 20
+
+pipeline:
+  clean_text: true
+  chunk_before_embedding: true
+  async_mode: "background_tasks"
+
+status_messages:
+  queued: "Queued for ingestion"
+  running: "Running ingestion"
+  completed: "Vector ingestion completed"
+  failed: "Ingestion failed"

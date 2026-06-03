@@ -1,0 +1,18 @@
+chat:
+  provider: "local"
+  model_name: "local-grounded-answer"
+  temperature: 0.2
+  max_tokens: 1200
+
+embedding:
+  provider: "local"
+  model_name: "hash-embedding-dev"
+  dimensions: 256
+
+providers:
+  qwen:
+    enabled: false
+    api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  deepseek:
+    enabled: false
+    api_base: "https://api.deepseek.com"
