@@ -64,8 +64,9 @@ const navItems = [
   { to: "/", label: "概览", description: "查看系统状态与常用入口" },
   { to: "/knowledge-bases", label: "知识库", description: "创建并管理岗位资料集合" },
   { to: "/documents", label: "文档中心", description: "上传资料并跟踪入库进度" },
-  { to: "/qa", label: "问答助手", description: "像专属面试助手一样使用你的知识库进行对话" },
-  { to: "/history", label: "历史记录", description: "查看会话历史与处理轨迹" }
+  { to: "/qa", label: "问答助手", description: "像专属面试助理一样使用你的知识库进行对话" },
+  { to: "/history", label: "历史记录", description: "查看会话历史与处理轨迹" },
+  { to: "/interview", label: "模拟面试", description: "开始一轮真实的题目问答并获取即时反馈" },
 ];
 
 const currentSection = computed(() => {

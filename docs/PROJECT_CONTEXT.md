@@ -6,10 +6,11 @@ Build an interview training system with:
 
 - user auth
 - knowledge base management
-- document upload
-- real document ingestion
-- RAG-based QA
-- future interview simulation with LangGraph and ReAct
+- document upload and ingestion
+- retrieval-augmented QA
+- question generation
+- interview simulation
+- interview summary and long-term training analysis
 
 ## 2. Current Status
 
@@ -30,19 +31,43 @@ Implemented:
 - frontend QA page with knowledge base selection, session switching, answer display, and references
 - QA session persistence and session detail retrieval
 - frontend history page with real session list and detail rendering
-- frontend documents, QA, and history pages cleaned up for readable Chinese copy
+- global API error popup on the frontend with Element Plus `ElMessage`
+- backend exception handling with request logging
+- QA fallback behavior:
+  - answer from retrieved document context first
+  - when no useful references exist, allow model fallback and prefix with `据我所知，`
+- reusable frontend components extracted from QA and document pages
+- question generation module with persistence
+- interview session persistence
+- interview page with multi-round follow-up flow
+- automatic interview summary generation and persistence after session completion
+- interview question selection by knowledge base, difficulty, and question type
 
 Not implemented yet:
 
-- online embedding provider integration
-- production-ready chat model generation with Qwen or DeepSeek as the default path
-- rerank and hybrid retrieval
-- real question generation workflow
-- interview scoring and follow-up
-- reusable frontend components for chat bubbles, reference cards, and session list items
-- deeper frontend polish and interaction refinement beyond the current cleanup pass
+- rerank or hybrid retrieval
+- richer interview orchestration strategy such as document-scoped drills and recent-question preference
+- long-term interview analytics and weak-point tracking
+- dedicated automated unit and integration tests for interview and question-generation modules
+- LangGraph-based interview workflow
 
-## 3. Current Backend Decisions
+## 3. What Was Completed Today
+
+Today the project moved from a basic interview MVP to a more usable training workflow:
+
+- implemented interview summary generation as a reusable backend capability
+- reused the `interview_summary` prompt and added local fallback when model generation fails
+- persisted the generated summary as a session turn with role `interview_summary`
+- exposed summary content and summary metadata in interview API responses
+- added interview summary rendering to the frontend interview page
+- added interview start filters for:
+  - difficulty
+  - question type
+- returned question difficulty and tags through the interview API
+- updated the interview page to support focused interview sessions
+- verified the latest changes with backend compile and frontend build
+
+## 4. Current Backend Decisions
 
 - Framework: FastAPI
 - Database: PostgreSQL
@@ -51,8 +76,10 @@ Not implemented yet:
 - Async mode now: FastAPI BackgroundTasks
 - Embedding now: local hash embedding for development
 - QA generation now: conditional Qwen chat provider with local grounded synthesis fallback
+- Interview summary persistence now: stored as `InterviewTurn(role="interview_summary")`
+- Interview question strategy now: filter on `QuestionBank.difficulty` and `QuestionBank.tags`
 
-## 4. Current Backend Flow
+## 5. Current Mainline Flow
 
 Auth flow:
 
@@ -86,51 +113,73 @@ QA flow:
 - retrieve chunks from Chroma
 - generate answer through configured chat provider when available
 - fall back to local grounded synthesis when online chat is unavailable
+- if no retrieved references are useful, allow model-knowledge fallback with prefix `据我所知，`
 - return references
 - save session history
 
-## 5. Immediate Next Steps
+Question generation flow:
+
+- select knowledge base and optional document
+- read completed document chunks
+- generate structured interview questions
+- persist question, reference answer, tags, and difficulty
+
+Interview flow:
+
+- start interview session
+- select a question by knowledge base and optional difficulty / question type
+- persist turns for interviewer, candidate, feedback, follow-up, and summary
+- generate follow-up questions until the configured round limit
+- automatically generate and persist a session summary after completion
+
+## 6. Recommended Next Steps
 
 Priority 1:
 
-- make Qwen or DeepSeek generation the stable default answer path
-- improve timeout, error handling, and prompt behavior for online chat generation
+- add interview orchestration controls:
+  - source document filtering
+  - recent-question preference
+  - configurable question count or drill mode
 
 Priority 2:
 
-- extract reusable frontend components from `frontend/src/views/qa` and `frontend/src/views/history`
-- continue polishing the QA workspace interaction and overall frontend consistency
+- add persistence-backed training analysis:
+  - weak-point aggregation
+  - repeated mistake themes
+  - summary-based review suggestions
 
 Priority 3:
 
-- add rerank or hybrid retrieval
-- add question generation
+- add automated tests for:
+  - interview session start
+  - filtered question selection
+  - follow-up generation
+  - summary generation fallback
 
-## 6. Model Decision Pending
+Priority 4:
 
-Chosen online model setup:
-
-- Chat model: `qwen3.6-plus-2026-04-02`
-- Embedding model: `text-embedding-v4`
-- Base URL: `https://dashscope.aliyuncs.com/compatible-mode/v1`
+- explore rerank or hybrid retrieval to improve QA and question quality
 
 ## 7. Important Files
 
-- `backend/app/services/ingestion_service.py`
 - `backend/app/services/qa_service.py`
-- `backend/app/rag/vector_store.py`
-- `backend/app/api/v1/endpoints/documents.py`
-- `backend/app/api/v1/endpoints/qa.py`
-- `backend/app/config/*.yaml`
+- `backend/app/services/question_bank_service.py`
+- `backend/app/services/interview_service.py`
+- `backend/app/api/v1/endpoints/interview.py`
+- `backend/app/schemas/interview.py`
+- `backend/app/config/prompt.yaml`
 - `frontend/src/views/documents/DocumentsView.vue`
 - `frontend/src/views/qa/QAView.vue`
 - `frontend/src/views/history/HistoryView.vue`
+- `frontend/src/views/interview/InterviewView.vue`
+- `frontend/src/api/interview.ts`
 
 ## 8. How Future Sessions Should Resume
 
 When continuing this project:
 
-1. Read this file first
-2. Confirm whether the next task is backend model integration, frontend component extraction, or retrieval quality improvement
-3. Preserve current PostgreSQL, Chroma, and ingestion architecture
-4. Do not replace local embedding until online provider integration is ready
+1. Read this file and `docs/DEVELOPMENT_PLAN.md` first.
+2. Keep the current PostgreSQL + Chroma + FastAPI architecture.
+3. Treat the current interview module as the active mainline module.
+4. Prefer building deeper interview training orchestration before more frontend polishing.
+5. If adding summary persistence fields to the session table later, do it only when the current turn-based storage becomes a real limitation.

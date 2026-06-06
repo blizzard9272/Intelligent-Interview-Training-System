@@ -5,6 +5,7 @@ import AuthRegisterView from "../views/auth/RegisterView.vue";
 import DashboardView from "../views/dashboard/DashboardView.vue";
 import DocumentsView from "../views/documents/DocumentsView.vue";
 import HistoryView from "../views/history/HistoryView.vue";
+import InterviewView from "../views/interview/InterviewView.vue";
 import KnowledgeBaseView from "../views/knowledge-base/KnowledgeBaseView.vue";
 import QAView from "../views/qa/QAView.vue";
 import pinia from "../stores";
@@ -17,12 +18,13 @@ const routes: RouteRecordRaw[] = [
   { path: "/knowledge-bases", name: "knowledge-bases", component: KnowledgeBaseView },
   { path: "/documents", name: "documents", component: DocumentsView },
   { path: "/qa", name: "qa", component: QAView },
-  { path: "/history", name: "history", component: HistoryView }
+  { path: "/history", name: "history", component: HistoryView },
+  { path: "/interview", name: "interview", component: InterviewView },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 });
 
 router.beforeEach(async (to) => {

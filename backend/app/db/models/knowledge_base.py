@@ -18,3 +18,4 @@ class KnowledgeBase(TimestampMixin, Base):
     documents = relationship("Document", back_populates="knowledge_base", cascade="all, delete-orphan")
     qa_sessions = relationship("QASession", back_populates="knowledge_base", cascade="all, delete-orphan")
     questions = relationship("QuestionBank", back_populates="knowledge_base", cascade="all, delete-orphan")
+    interview_sessions = relationship("InterviewSession", back_populates="knowledge_base", cascade="all, delete-orphan")
