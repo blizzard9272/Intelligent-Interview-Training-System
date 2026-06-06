@@ -39,6 +39,12 @@ class QwenChatProvider:
                 f"[{index}] file={reference.file_name}, chunk={reference.chunk_index}\n{reference.snippet}"
             )
         context_text = "\n\n".join(context_lines) if context_lines else "No retrieved context."
+        no_reference_guidance = (
+            "No document reference was retrieved for this question. "
+            "You may answer from your general knowledge, but do not claim the answer is grounded in uploaded files."
+            if not references
+            else ""
+        )
 
         messages = [
             {
@@ -46,7 +52,8 @@ class QwenChatProvider:
                 "content": (
                     f"{system_prompt}\n\n"
                     "When you use retrieved context, cite it with [1], [2], etc. "
-                    "If the retrieved context is insufficient, say so clearly instead of inventing facts."
+                    "If the retrieved context is insufficient, say so clearly instead of inventing facts.\n\n"
+                    f"{no_reference_guidance}"
                 ),
             },
             {

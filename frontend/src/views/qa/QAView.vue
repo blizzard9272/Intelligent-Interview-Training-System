@@ -19,17 +19,14 @@
           <div v-if="loadingSessions" class="empty-state">正在加载会话...</div>
           <div v-else-if="sessions.length === 0" class="empty-state">暂时还没有会话。</div>
           <div v-else class="session-list">
-            <button
+            <SessionListItem
               v-for="session in sessions"
               :key="session.id"
-              type="button"
-              class="session-item"
-              :class="{ active: activeSessionId === session.id }"
-              @click="loadSessionDetail(session.id)"
-            >
-              <strong>{{ session.title || `会话 #${session.id}` }}</strong>
-              <span>{{ formatDate(session.updated_at) }}</span>
-            </button>
+              :title="session.title || `会话 #${session.id}`"
+              :time-label="formatDate(session.updated_at)"
+              :active="activeSessionId === session.id"
+              @select="loadSessionDetail(session.id)"
+            />
           </div>
         </div>
 
@@ -52,10 +49,8 @@
 
         <div class="session-toolbar">
           <el-button type="primary" class="full-width" @click="startNewSession">新建会话</el-button>
-          <p class="meta-text">切换会话后，右侧对话区会立即加载对应上下文。</p>
+          <p class="meta-text">切换会话后，右侧对话区会立刻加载对应上下文。</p>
         </div>
-
-        
       </aside>
 
       <section class="panel qa-conversation">
@@ -75,40 +70,14 @@
           先从左侧选择知识库与会话，然后在底部输入问题开始和 AI 对话。
         </div>
         <div v-else class="message-list">
-          <article
+          <ChatMessageCard
             v-for="(item, index) in messages"
             :key="index"
-            class="message"
-            :class="item.role === 'assistant' ? 'assistant' : 'user'"
-          >
-            <div class="message-role">{{ item.role === "assistant" ? "助手" : "你" }}</div>
-            <pre class="message-content">{{ item.content }}</pre>
-
-            <div
-              v-if="item.role === 'assistant' && item.references_json && item.references_json.length > 0"
-              class="references"
-            >
-              <div class="references-toggle-row">
-                <h4>引用片段</h4>
-                <el-button text @click="toggleReferences(index)">
-                  {{ isReferenceExpanded(index) ? "收起" : "展开" }}
-                </el-button>
-              </div>
-              <div v-if="isReferenceExpanded(index)" class="reference-list">
-                <div
-                  v-for="(reference, refIndex) in item.references_json"
-                  :key="refIndex"
-                  class="reference-item"
-                >
-                  <div class="reference-head">
-                    <strong>{{ reference.file_name }}</strong>
-                    <span class="pill">分块 #{{ reference.chunk_index }}</span>
-                  </div>
-                  <p>{{ reference.snippet }}</p>
-                </div>
-              </div>
-            </div>
-          </article>
+            :message="item"
+            collapsible
+            :references-expanded="isReferenceExpanded(index)"
+            @toggle-references="toggleReferences(index)"
+          />
         </div>
 
         <footer class="composer">
@@ -146,6 +115,8 @@ import { useRoute } from "vue-router";
 
 import { askQuestion, getQASessionDetail, getQASessions, type QAMessage, type QASessionItem } from "../../api/qa";
 import { getKnowledgeBases, type KnowledgeBaseItem } from "../../api/knowledgeBase";
+import ChatMessageCard from "../../components/qa/ChatMessageCard.vue";
+import SessionListItem from "../../components/qa/SessionListItem.vue";
 import AppShell from "../../layout/AppShell.vue";
 
 const route = useRoute();
@@ -261,7 +232,7 @@ function formatDate(value: string) {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleString();
+  return date.toLocaleString("zh-CN");
 }
 
 onMounted(async () => {
@@ -303,7 +274,7 @@ watch(
   align-self: start;
   position: sticky;
   top: 24px;
-  max-height: 100vh;
+  max-height: calc(100vh - 48px);
   overflow: hidden;
 }
 
@@ -343,34 +314,12 @@ watch(
   min-height: 0;
 }
 
-.session-item {
-  border: 1px solid rgba(20, 33, 61, 0.06);
-  text-align: left;
-  background: rgba(243, 247, 251, 0.86);
-  border-radius: 16px;
-  padding: 14px 16px;
-  cursor: pointer;
-  display: grid;
-  gap: 6px;
-  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
-}
-
-.session-item:hover {
-  transform: translateY(-1px);
-  border-color: rgba(31, 111, 235, 0.2);
-  box-shadow: var(--shadow-sm);
-}
-
-.session-item.active {
-  background: rgba(31, 111, 235, 0.12);
-  border-color: rgba(31, 111, 235, 0.22);
-}
-
 .qa-conversation {
   gap: 18px;
   position: sticky;
   top: 24px;
-  height: 150vh;
+  min-height: calc(100vh - 48px);
+  max-height: calc(100vh - 48px);
   overflow: hidden;
 }
 
@@ -399,75 +348,6 @@ watch(
   align-items: stretch;
 }
 
-.message {
-  padding: 18px;
-  border-radius: 16px;
-  border: 1px solid rgba(20, 33, 61, 0.06);
-  flex: 0 0 auto;
-  align-self: stretch;
-}
-
-.message.user {
-  background: rgba(218, 235, 255, 0.58);
-}
-
-.message.assistant {
-  background: rgba(248, 250, 252, 0.9);
-}
-
-.message-role {
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.message-content {
-  margin: 0;
-  white-space: pre-wrap;
-  font-family: "Segoe UI", "PingFang SC", sans-serif;
-  line-height: 1.6;
-}
-
-.references {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(20, 33, 61, 0.08);
-}
-
-.references-toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.references-toggle-row h4 {
-  margin: 0;
-}
-
-.reference-list {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.reference-item {
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.reference-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.reference-item p {
-  margin: 8px 0 0;
-  color: var(--text-secondary);
-}
-
 .composer {
   display: grid;
   gap: 14px;
@@ -477,8 +357,6 @@ watch(
   border-radius: var(--radius-md);
   background: rgba(243, 247, 251, 0.96);
   box-shadow: 0 -10px 24px rgba(31, 50, 81, 0.05);
-  position: sticky;
-  bottom: 0;
 }
 
 .composer-head {
@@ -513,15 +391,12 @@ watch(
   .qa-conversation {
     position: static;
     max-height: none;
+    min-height: 0;
     height: auto;
   }
 
   .message-list {
     max-height: none;
-  }
-
-  .composer {
-    position: static;
   }
 
   .composer-head,

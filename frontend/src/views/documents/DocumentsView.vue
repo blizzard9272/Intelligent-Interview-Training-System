@@ -43,17 +43,14 @@
         <div class="template-entry">
           <div class="template-entry-copy">
             <div class="panel-title">
-              <h2>文件模板（上传前先看模板示例）</h2>
-              <div class="template-entry-actions">
-                <el-button @click="downloadTemplate">下载模板</el-button>
-                <el-button @click="templatePreviewVisible = true">查看模板预览</el-button>
-              </div>
-              
+              <h2>文件模板</h2>
+              <p>上传前先看模板示例，确认什么样的资料更适合后续的分块、检索和问答。</p>
             </div>
-            <h3></h3>
-              <p>点击查看推荐文档结构，提前确认什么样的资料最适合分块、检索和问答。</p>
+            <div class="template-entry-actions">
+              <el-button @click="downloadTemplate">下载模板</el-button>
+              <el-button @click="templatePreviewVisible = true">查看模板预览</el-button>
+            </div>
           </div>
-          
         </div>
       </section>
 
@@ -85,33 +82,15 @@
         <div v-if="loadingDocuments" class="empty-state">正在加载文档...</div>
         <div v-else-if="documents.length === 0" class="empty-state">还没有文档，先上传一份资料开始吧。</div>
         <div v-else class="stack-list">
-          <article
+          <DocumentListCard
             v-for="item in documents"
             :key="item.id"
-            class="list-card document-card"
-          >
-            <div class="item-top">
-              <div class="document-main">
-                <div class="document-info">
-                  <h3>{{ item.file_name }}</h3>
-                  <p>{{ item.file_type.toUpperCase() }} / {{ formatSize(item.file_size) }}</p>
-                  <p>状态：{{ item.status }}</p>
-                </div>
-
-                <div class="document-meta">
-                  <span class="pill">共 {{ item.chunk_count }} 段</span>
-                  <span class="pill">{{ formatDate(item.updated_at) }}</span>
-                </div>
-              </div>
-
-              <div class="document-actions">
-                <el-button @click="openChunkDrawer(item)">查看分块</el-button>
-                <el-button type="danger" text @click="handleDelete(item.id)">删除</el-button>
-              </div>
-            </div>
-
-            <p v-if="item.parse_error" class="parse-error">解析提示：{{ item.parse_error }}</p>
-          </article>
+            :item="item"
+            :size-label="formatSize(item.file_size)"
+            :updated-at-label="formatDate(item.updated_at)"
+            @preview="openChunkDrawer(item)"
+            @delete="handleDelete(item.id)"
+          />
         </div>
       </section>
     </div>
@@ -135,16 +114,11 @@
         <div v-if="loadingChunks" class="empty-state">正在加载分块内容...</div>
         <div v-else-if="chunkItems.length === 0" class="empty-state">当前文档还没有可展示的分块内容。</div>
         <div v-else class="chunk-list">
-          <article v-for="chunk in chunkItems" :key="chunk.chunk_index" class="chunk-card">
-            <div class="chunk-head">
-              <strong>Chunk #{{ chunk.chunk_index + 1 }}</strong>
-              <div class="chunk-head-meta">
-                <span v-if="chunk.section_title" class="pill">{{ chunk.section_title }}</span>
-                <span v-if="chunk.page_no" class="pill">页码 {{ chunk.page_no }}</span>
-              </div>
-            </div>
-            <pre class="chunk-content">{{ chunk.content }}</pre>
-          </article>
+          <DocumentChunkCard
+            v-for="chunk in chunkItems"
+            :key="chunk.chunk_index"
+            :chunk="chunk"
+          />
         </div>
       </div>
     </el-drawer>
@@ -169,7 +143,7 @@
             <ul class="guide-list">
               <li>优先使用带明确标题层级的 `Markdown` 或可复制文字的 `PDF`。</li>
               <li>一份文档尽量围绕一个主题，例如“LangChain 基础”或“面试题题解”。</li>
-              <li>使用清晰的小节标题，如“概念解释 / 示例代码 / 常见问题 / 面试考点”。</li>
+              <li>使用清晰的小节标题，例如“概念解释 / 示例代码 / 常见问题 / 面试考点”。</li>
               <li>长文档建议按章节拆分，而不是把多个主题混在同一个 PDF 里。</li>
             </ul>
           </article>
@@ -187,7 +161,7 @@
           <article class="guide-card warning">
             <h4>需要避免</h4>
             <ul class="guide-list">
-              <li>扫描版 PDF 或拍照生成的图片型 PDF，没有文字层时通常需要 OCR。</li>
+              <li>扫描件 PDF 或拍照生成的图片型 PDF，没有文字层时通常需要 OCR。</li>
               <li>整份资料只有大段连续文本、没有标题或没有换段，会影响分块质量。</li>
               <li>过多页眉页脚、广告、水印和目录噪声，会降低检索结果质量。</li>
               <li>把简历、八股、项目题、系统设计等完全不同主题硬塞进一个文件。</li>
@@ -237,6 +211,8 @@ import {
   type DocumentItem
 } from "../../api/document";
 import { getKnowledgeBases, type KnowledgeBaseItem } from "../../api/knowledgeBase";
+import DocumentChunkCard from "../../components/documents/DocumentChunkCard.vue";
+import DocumentListCard from "../../components/documents/DocumentListCard.vue";
 import AppShell from "../../layout/AppShell.vue";
 
 const knowledgeBases = ref<KnowledgeBaseItem[]>([]);
@@ -264,7 +240,6 @@ const templateOptions = [
     badge: "Markdown / PDF 都适用",
     fileName: "langchain-interview-template.md",
     content: `# LangChain 面试高频题
-
 ## 1. 什么是 LangChain
 - 定义：
 - 适用场景：
@@ -278,8 +253,7 @@ const templateOptions = [
 ## 3. 向量数据库如何配合 RAG
 - 基本流程：
 - 常见组件：
-- 容易答错的点：
-`,
+- 容易答错的点：`,
   },
   {
     key: "project-review",
@@ -308,8 +282,7 @@ const templateOptions = [
 ## 4. 可量化结果
 - 性能提升：
 - 成本优化：
-- 业务指标：
-`,
+- 业务指标：`,
   },
   {
     key: "tech-notes",
@@ -337,8 +310,7 @@ const templateOptions = [
 ## 4. 面试考点
 - 高频问题：
 - 容易混淆的点：
-- 推荐回答结构：
-`,
+- 推荐回答结构：`,
   },
 ];
 
@@ -499,7 +471,7 @@ onMounted(async () => {
   min-width: 280px;
   align-self: start;
   position: sticky;
-  top: 0;
+  top: 24px;
 }
 
 .documents-panel {
@@ -526,57 +498,6 @@ onMounted(async () => {
   width: 220px;
 }
 
-.item-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.document-card {
-  padding: 14px 16px;
-}
-
-.document-main {
-  display: flex;
-  flex: 1;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  min-width: 0;
-}
-
-.document-info {
-  min-width: 0;
-}
-
-.document-meta,
-.document-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.document-actions {
-  margin-left: 12px;
-}
-
-.parse-error {
-  margin-top: 10px;
-  color: #c2410c;
-}
-
-.list-card h3 {
-  margin: 0 0 6px;
-}
-
-.list-card p {
-  margin: 4px 0;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
 .file-input {
   width: 100%;
   padding: 12px;
@@ -585,10 +506,18 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.72);
 }
 
-.support-note {
-  margin: -2px 0 14px;
+.support-note,
+.input-note {
   color: var(--text-secondary);
   font-size: 0.92rem;
+}
+
+.support-note {
+  margin: -2px 0 14px;
+}
+
+.input-note {
+  margin-top: 12px;
 }
 
 .template-entry {
@@ -603,11 +532,7 @@ onMounted(async () => {
 
 .template-entry-copy {
   display: grid;
-  gap: 8px;
-}
-
-.template-entry-copy h3 {
-  margin: 0;
+  gap: 12px;
 }
 
 .template-entry-copy p {
@@ -617,10 +542,8 @@ onMounted(async () => {
 }
 
 .template-entry-actions {
-  margin-top: 4px;
   display: flex;
-  align-items: center;
-  justify-content: space-around;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -635,7 +558,6 @@ onMounted(async () => {
 }
 
 .guide-head h3,
-.template-example h4,
 .guide-card h4 {
   margin: 0;
 }
@@ -672,15 +594,6 @@ onMounted(async () => {
 
 .guide-list li + li {
   margin-top: 8px;
-}
-
-.template-example {
-  display: grid;
-  gap: 12px;
-  padding: 18px;
-  border-radius: 16px;
-  background: rgba(20, 33, 61, 0.04);
-  border: 1px solid rgba(20, 33, 61, 0.08);
 }
 
 .template-code {
@@ -776,36 +689,6 @@ onMounted(async () => {
   gap: 14px;
 }
 
-.chunk-card {
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(243, 247, 251, 0.85);
-  border: 1px solid rgba(20, 33, 61, 0.08);
-}
-
-.chunk-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.chunk-head-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chunk-content {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: "Segoe UI", "PingFang SC", sans-serif;
-  line-height: 1.7;
-  color: var(--text-main);
-}
-
 @media (max-width: 860px) {
   .documents-layout {
     flex-direction: column;
@@ -830,14 +713,11 @@ onMounted(async () => {
 }
 
 @media (max-width: 960px) {
-  .toolbar,
-  .item-top,
-  .document-main {
+  .toolbar {
     flex-direction: column;
   }
 
-  .toolbar-actions,
-  .document-actions {
+  .toolbar-actions {
     width: 100%;
   }
 

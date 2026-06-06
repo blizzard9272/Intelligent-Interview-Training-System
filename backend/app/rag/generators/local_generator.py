@@ -11,8 +11,8 @@ def build_grounded_answer(question: str, references: list[QAReference]) -> str:
         if not rag_config.answering.fallback_when_empty:
             return ""
         return (
-            "I could not find relevant content in the selected knowledge base for this question. "
-            "Please upload more material or ask a more specific question."
+            "当前知识库中没有检索到可直接参考的内容。"
+            "如果在线模型可用，我会基于通用知识补充回答；否则建议你上传更多相关资料或把问题问得更具体一些。"
         )
 
     snippets = [

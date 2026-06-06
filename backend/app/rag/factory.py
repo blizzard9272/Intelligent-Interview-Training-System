@@ -29,6 +29,7 @@ def get_embedding_provider():
 def generate_answer(question: str, references: list[QAReference]) -> str:
     model_config = get_model_config()
     qwen_provider = model_config.providers.get("qwen")
+    should_prefix_general_knowledge = len(references) == 0
     if (
         model_config.chat.provider == "qwen"
         and settings.dashscope_api_key
@@ -42,7 +43,10 @@ def generate_answer(question: str, references: list[QAReference]) -> str:
                 len(references),
                 len(question),
             )
-            return QwenChatProvider().answer_question(question, references)
+            answer = QwenChatProvider().answer_question(question, references)
+            if should_prefix_general_knowledge:
+                return _prefix_general_knowledge_answer(answer)
+            return answer
         except (ValueError, ChatProviderError) as exc:
             logger.warning(
                 "chat_provider_fallback provider=qwen fallback=local reason=%s references=%s",
@@ -56,4 +60,16 @@ def generate_answer(question: str, references: list[QAReference]) -> str:
         len(references),
         len(question),
     )
-    return build_grounded_answer(question, references)
+    answer = build_grounded_answer(question, references)
+    if should_prefix_general_knowledge:
+        return _prefix_general_knowledge_answer(answer)
+    return answer
+
+
+def _prefix_general_knowledge_answer(answer: str) -> str:
+    normalized = answer.strip()
+    if not normalized:
+        return "据我所知，当前暂时无法生成可用回答。"
+    if normalized.startswith("据我所知"):
+        return normalized
+    return f"据我所知，{normalized}"

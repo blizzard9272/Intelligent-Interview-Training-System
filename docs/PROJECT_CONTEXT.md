@@ -29,6 +29,8 @@ Implemented:
 - frontend knowledge base and document management pages
 - frontend QA page with knowledge base selection, session switching, answer display, and references
 - QA session persistence and session detail retrieval
+- frontend history page with real session list and detail rendering
+- frontend documents, QA, and history pages cleaned up for readable Chinese copy
 
 Not implemented yet:
 
@@ -37,8 +39,8 @@ Not implemented yet:
 - rerank and hybrid retrieval
 - real question generation workflow
 - interview scoring and follow-up
-- frontend history page real data rendering
-- frontend polish for broken text encoding and QA workspace layout
+- reusable frontend components for chat bubbles, reference cards, and session list items
+- deeper frontend polish and interaction refinement beyond the current cleanup pass
 
 ## 3. Current Backend Decisions
 
@@ -91,17 +93,16 @@ QA flow:
 
 Priority 1:
 
-- fix frontend text encoding and broken layout issues
-- optimize the QA workspace so the conversation panel becomes the primary focus area
-
-Priority 2:
-
 - make Qwen or DeepSeek generation the stable default answer path
 - improve timeout, error handling, and prompt behavior for online chat generation
 
+Priority 2:
+
+- extract reusable frontend components from `frontend/src/views/qa` and `frontend/src/views/history`
+- continue polishing the QA workspace interaction and overall frontend consistency
+
 Priority 3:
 
-- build the frontend history page with real session data
 - add rerank or hybrid retrieval
 - add question generation
 
@@ -121,12 +122,15 @@ Chosen online model setup:
 - `backend/app/api/v1/endpoints/documents.py`
 - `backend/app/api/v1/endpoints/qa.py`
 - `backend/app/config/*.yaml`
+- `frontend/src/views/documents/DocumentsView.vue`
+- `frontend/src/views/qa/QAView.vue`
+- `frontend/src/views/history/HistoryView.vue`
 
 ## 8. How Future Sessions Should Resume
 
 When continuing this project:
 
 1. Read this file first
-2. Confirm whether the next task is frontend polish, backend model integration, or history page completion
+2. Confirm whether the next task is backend model integration, frontend component extraction, or retrieval quality improvement
 3. Preserve current PostgreSQL, Chroma, and ingestion architecture
 4. Do not replace local embedding until online provider integration is ready

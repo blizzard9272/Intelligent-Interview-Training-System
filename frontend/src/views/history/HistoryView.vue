@@ -4,7 +4,7 @@
       <section class="panel history-overview">
         <div class="panel-title">
           <h2>问答历史</h2>
-          <p>查看已经保存的会话、快速回看消息内容，并从历史会话继续进入问答助手。</p>
+          <p>查看已经保存的会话，快速回看消息内容，并从历史会话继续进入问答助手。</p>
         </div>
         <div class="overview-metrics">
           <article class="metric-card">
@@ -37,20 +37,15 @@
           <div v-if="loadingSessions" class="empty-state">正在加载会话...</div>
           <div v-else-if="sessions.length === 0" class="empty-state">还没有历史会话，先去问答助手开始一次对话吧。</div>
           <div v-else class="session-list">
-            <button
+            <SessionListItem
               v-for="session in sessions"
               :key="session.id"
-              type="button"
-              class="session-item"
-              :class="{ active: activeSessionId === session.id }"
-              @click="loadSessionDetail(session.id)"
-            >
-              <div class="session-item-head">
-                <strong>{{ session.title || `会话 #${session.id}` }}</strong>
-                <span class="pill">知识库 #{{ session.knowledge_base_id }}</span>
-              </div>
-              <span class="session-time">更新于 {{ formatDate(session.updated_at) }}</span>
-            </button>
+              :title="session.title || `会话 #${session.id}`"
+              :badge="`知识库 #${session.knowledge_base_id}`"
+              :time-label="`更新于 ${formatDate(session.updated_at)}`"
+              :active="activeSessionId === session.id"
+              @select="loadSessionDetail(session.id)"
+            />
           </div>
         </section>
 
@@ -76,33 +71,11 @@
           <div v-else-if="!activeSessionDetail" class="empty-state">请选择一个历史会话查看详情。</div>
           <div v-else-if="activeSessionDetail.messages.length === 0" class="empty-state">当前会话还没有消息内容。</div>
           <div v-else class="detail-list">
-            <article
+            <ChatMessageCard
               v-for="(item, index) in activeSessionDetail.messages"
               :key="index"
-              class="detail-message"
-              :class="item.role === 'assistant' ? 'assistant' : 'user'"
-            >
-              <div class="detail-role">{{ item.role === "assistant" ? "助手" : "你" }}</div>
-              <pre class="detail-content">{{ item.content }}</pre>
-
-              <div
-                v-if="item.role === 'assistant' && item.references_json && item.references_json.length > 0"
-                class="detail-references"
-              >
-                <h4>引用片段</h4>
-                <div
-                  v-for="(reference, refIndex) in item.references_json"
-                  :key="refIndex"
-                  class="reference-item"
-                >
-                  <div class="reference-head">
-                    <strong>{{ reference.file_name }}</strong>
-                    <span class="pill">分块 #{{ reference.chunk_index }}</span>
-                  </div>
-                  <p>{{ reference.snippet }}</p>
-                </div>
-              </div>
-            </article>
+              :message="item"
+            />
           </div>
         </section>
       </div>
@@ -115,6 +88,8 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { getQASessionDetail, getQASessions, type QASessionDetail, type QASessionItem } from "../../api/qa";
+import ChatMessageCard from "../../components/qa/ChatMessageCard.vue";
+import SessionListItem from "../../components/qa/SessionListItem.vue";
 import AppShell from "../../layout/AppShell.vue";
 
 const router = useRouter();
@@ -171,7 +146,7 @@ function formatDate(value: string) {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleString();
+  return date.toLocaleString("zh-CN");
 }
 
 onMounted(async () => {
@@ -225,95 +200,6 @@ onMounted(async () => {
 .detail-list {
   display: grid;
   gap: 14px;
-}
-
-.session-item {
-  text-align: left;
-  border: 1px solid rgba(20, 33, 61, 0.06);
-  background: rgba(243, 247, 251, 0.86);
-  border-radius: 16px;
-  padding: 16px;
-  cursor: pointer;
-  display: grid;
-  gap: 10px;
-  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
-}
-
-.session-item:hover {
-  transform: translateY(-1px);
-  border-color: rgba(31, 111, 235, 0.2);
-  box-shadow: var(--shadow-sm);
-}
-
-.session-item.active {
-  background: rgba(31, 111, 235, 0.1);
-  border-color: rgba(31, 111, 235, 0.24);
-}
-
-.session-item-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.session-time {
-  color: var(--text-secondary);
-}
-
-.detail-message {
-  padding: 18px;
-  border-radius: 16px;
-  border: 1px solid rgba(20, 33, 61, 0.06);
-}
-
-.detail-message.user {
-  background: rgba(218, 235, 255, 0.58);
-}
-
-.detail-message.assistant {
-  background: rgba(248, 250, 252, 0.9);
-}
-
-.detail-role {
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.detail-content {
-  margin: 0;
-  white-space: pre-wrap;
-  font-family: "Segoe UI", "PingFang SC", sans-serif;
-  line-height: 1.6;
-}
-
-.detail-references {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(20, 33, 61, 0.08);
-}
-
-.detail-references h4 {
-  margin: 0 0 12px;
-}
-
-.reference-item {
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
-  margin-top: 10px;
-}
-
-.reference-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.reference-item p {
-  margin: 8px 0 0;
-  color: var(--text-secondary);
 }
 
 @media (max-width: 1080px) {
