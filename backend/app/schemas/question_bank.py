@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -6,6 +8,7 @@ from pydantic import BaseModel
 class QuestionBankGenerateRequest(BaseModel):
     knowledge_base_id: int
     document_id: int | None = None
+    max_questions: int | None = None
 
 
 class QuestionBankItemResponse(BaseModel):
@@ -20,3 +23,12 @@ class QuestionBankItemResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class QuestionBankGenerateResponse(BaseModel):
+    status: str
+    message: str
+    knowledge_base_id: int
+    document_id: int | None = None
+    generated_count: int
+    items: list[QuestionBankItemResponse]

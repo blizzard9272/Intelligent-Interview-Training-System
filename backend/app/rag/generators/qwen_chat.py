@@ -46,26 +46,26 @@ class QwenChatProvider:
             else ""
         )
 
+        return self.generate_completion(
+            system_prompt=(
+                f"{system_prompt}\n\n"
+                "When you use retrieved context, cite it with [1], [2], etc. "
+                "If the retrieved context is insufficient, say so clearly instead of inventing facts.\n\n"
+                f"{no_reference_guidance}"
+            ),
+            user_prompt=f"Question:\n{question}\n\nRetrieved context:\n{context_text}",
+        )
+
+    def generate_completion(self, system_prompt: str, user_prompt: str) -> str:
         messages = [
-            {
-                "role": "system",
-                "content": (
-                    f"{system_prompt}\n\n"
-                    "When you use retrieved context, cite it with [1], [2], etc. "
-                    "If the retrieved context is insufficient, say so clearly instead of inventing facts.\n\n"
-                    f"{no_reference_guidance}"
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"Question:\n{question}\n\nRetrieved context:\n{context_text}",
-            },
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
         ]
         logger.info(
-            "qwen_chat_request_started model=%s references=%s temperature=%s",
+            "qwen_chat_request_started model=%s temperature=%s prompt_length=%s",
             self.model_name,
-            len(references),
             self.temperature,
+            len(system_prompt) + len(user_prompt),
         )
         response = self._request_chat(messages)
         try:
