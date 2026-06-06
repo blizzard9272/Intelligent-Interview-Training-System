@@ -1,3 +1,6 @@
+"""
+注册、登录和用户相应相关的Pydantic 数据模型
+"""
 from pydantic import BaseModel, EmailStr, Field
 
 

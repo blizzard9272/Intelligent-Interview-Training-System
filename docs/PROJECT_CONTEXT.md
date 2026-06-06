@@ -25,16 +25,20 @@ Implemented:
 - local embedding for offline development
 - Chroma persistence
 - retrieval-backed QA with references
-- frontend skeleton with auth, knowledge base, document pages
+- frontend auth flow and protected routing
+- frontend knowledge base and document management pages
+- frontend QA page with knowledge base selection, session switching, answer display, and references
+- QA session persistence and session detail retrieval
 
 Not implemented yet:
 
 - online embedding provider integration
-- real chat model generation with Qwen or DeepSeek
+- production-ready chat model generation with Qwen or DeepSeek as the default path
 - rerank and hybrid retrieval
-- question generation workflow
+- real question generation workflow
 - interview scoring and follow-up
-- frontend QA page real interaction
+- frontend history page real data rendering
+- frontend polish for broken text encoding and QA workspace layout
 
 ## 3. Current Backend Decisions
 
@@ -44,7 +48,7 @@ Not implemented yet:
 - Vector store: Chroma
 - Async mode now: FastAPI BackgroundTasks
 - Embedding now: local hash embedding for development
-- QA generation now: local grounded synthesis from retrieved snippets
+- QA generation now: conditional Qwen chat provider with local grounded synthesis fallback
 
 ## 4. Current Backend Flow
 
@@ -78,7 +82,8 @@ QA flow:
 - validate knowledge base access
 - embed query
 - retrieve chunks from Chroma
-- build grounded answer
+- generate answer through configured chat provider when available
+- fall back to local grounded synthesis when online chat is unavailable
 - return references
 - save session history
 
@@ -86,29 +91,27 @@ QA flow:
 
 Priority 1:
 
-- integrate real chat model provider
-- replace local answer synthesis with Qwen or DeepSeek generation
+- fix frontend text encoding and broken layout issues
+- optimize the QA workspace so the conversation panel becomes the primary focus area
 
 Priority 2:
 
-- build frontend QA page real interaction
-- allow selecting knowledge base and viewing references
+- make Qwen or DeepSeek generation the stable default answer path
+- improve timeout, error handling, and prompt behavior for online chat generation
 
 Priority 3:
 
+- build the frontend history page with real session data
 - add rerank or hybrid retrieval
 - add question generation
 
 ## 6. Model Decision Pending
 
-Need user confirmation for first online chat model:
+Chosen online model setup:
 
-- Qwen
-- DeepSeek
-
-Suggested first choice:
-
-- Qwen if DashScope API key is available
+- Chat model: `qwen3.6-plus-2026-04-02`
+- Embedding model: `text-embedding-v4`
+- Base URL: `https://dashscope.aliyuncs.com/compatible-mode/v1`
 
 ## 7. Important Files
 
@@ -124,6 +127,6 @@ Suggested first choice:
 When continuing this project:
 
 1. Read this file first
-2. Confirm whether the next task is backend model integration or frontend QA integration
+2. Confirm whether the next task is frontend polish, backend model integration, or history page completion
 3. Preserve current PostgreSQL, Chroma, and ingestion architecture
 4. Do not replace local embedding until online provider integration is ready

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models.document import Document
 from app.db.models.ingestion_task import IngestionTask
+from app.utils import get_ingestion_config
 
 
 class IngestionTaskService:
@@ -12,11 +13,12 @@ class IngestionTaskService:
         self.db = db
 
     def create(self, document_id: int) -> IngestionTask:
+        ingestion_config = get_ingestion_config()
         task = IngestionTask(
             document_id=document_id,
             status="queued",
             progress=0,
-            message="等待入库处理",
+            message=ingestion_config.status_messages.queued,
             created_at=datetime.now(timezone.utc),
         )
         self.db.add(task)

@@ -1,3 +1,6 @@
+"""
+加载器工厂模块，根据文件类型选择合适的加载器函数来处理不同格式的文件。
+"""
 from app.rag.loaders.markdown_loader import load_markdown_file
 from app.rag.loaders.pdf_loader import load_pdf_file
 from app.rag.loaders.text_loader import load_text_file

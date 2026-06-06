@@ -1,3 +1,12 @@
+"""
+知识库接口，定义了与知识库相关的API端点。
+负责：
+1. 列出知识库：提供一个GET /knowledge-bases端点，返回当前用户创建的所有知识库的列表。
+2. 创建知识库：提供一个POST /knowledge-bases端点，接受知识库的名称和描述，创建一个新的知识库，并返回创建的知识库信息。
+3. 更新知识库：提供一个PUT /knowledge-bases/{kb_id}端点，接受知识库ID和更新后的信息，更新指定的知识库，并返回更新后的知识库信息。
+4. 删除知识库：提供一个DELETE /knowledge-bases/{kb_id}端点，接受知识库ID，删除指定的知识库，并返回204 No Content响应。
+5. 错误处理：在更新和删除过程中，如果指定的知识库不存在，返回适当的HTTP错误响应，提示用户相关问题。
+"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 

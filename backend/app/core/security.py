@@ -1,3 +1,6 @@
+"""
+安全相关逻辑，包括密码哈希和验证、JWT令牌的生成和解码等功能。
+"""
 from datetime import datetime, timedelta, timezone
 
 from jose import jwt

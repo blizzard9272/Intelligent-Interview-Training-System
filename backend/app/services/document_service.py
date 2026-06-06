@@ -1,10 +1,11 @@
-from pathlib import Path
-
+"""
+"""
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models.document import Document
 from app.rag.vector_store import ChromaVectorStore
+from app.utils import delete_file_if_exists
 
 
 class DocumentService:
@@ -50,9 +51,31 @@ class DocumentService:
         if not document:
             return False
         ChromaVectorStore().delete_document_chunks(document.id)
-        file_path = Path(document.file_path)
-        if file_path.exists():
-            file_path.unlink()
+        delete_file_if_exists(document.file_path)
         self.db.delete(document)
         self.db.commit()
         return True
+
+    def get_chunks(self, user_id: int, document_id: int) -> list[dict]:
+        document = self.get_by_id(user_id, document_id)
+        if not document:
+            return []
+
+        result = ChromaVectorStore().get_document_chunks(user_id=user_id, document_id=document_id)
+        documents = result.get("documents") or []
+        metadatas = result.get("metadatas") or []
+
+        items: list[dict] = []
+        for index, content in enumerate(documents):
+            metadata = metadatas[index] if index < len(metadatas) else {}
+            items.append(
+                {
+                    "chunk_index": int(metadata.get("chunk_index", index)),
+                    "section_title": metadata.get("section_title") or None,
+                    "page_no": metadata.get("page_no") or None,
+                    "content": content,
+                }
+            )
+
+        items.sort(key=lambda item: item["chunk_index"])
+        return items

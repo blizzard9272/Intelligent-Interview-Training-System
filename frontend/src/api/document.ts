@@ -20,6 +20,13 @@ export interface DocumentUploadResponse {
   status: string;
 }
 
+export interface DocumentChunkItem {
+  chunk_index: number;
+  section_title: string | null;
+  page_no: number | null;
+  content: string;
+}
+
 export async function getDocuments(knowledgeBaseId?: number) {
   const { data } = await http.get<DocumentItem[]>("/documents", {
     params: knowledgeBaseId ? { knowledge_base_id: knowledgeBaseId } : undefined
@@ -42,4 +49,9 @@ export async function uploadDocument(knowledgeBaseId: number, file: File) {
 
 export async function deleteDocument(documentId: number) {
   await http.delete(`/documents/${documentId}`);
+}
+
+export async function getDocumentChunks(documentId: number) {
+  const { data } = await http.get<DocumentChunkItem[]>(`/documents/${documentId}/chunks`);
+  return data;
 }

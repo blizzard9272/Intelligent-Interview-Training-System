@@ -1,17 +1,17 @@
 chat:
-  provider: "local"
-  model_name: "local-grounded-answer"
+  provider: "qwen"
+  model_name: "qwen3.6-plus-2026-04-02"
   temperature: 0.2
   max_tokens: 1200
 
 embedding:
-  provider: "local"
-  model_name: "hash-embedding-dev"
-  dimensions: 256
+  provider: "qwen"
+  model_name: "text-embedding-v4"
+  dimensions: 1024
 
 providers:
   qwen:
-    enabled: false
+    enabled: true
     api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   deepseek:
     enabled: false

@@ -1,3 +1,7 @@
+"""
+API路由模块，定义了应用程序的主要API路由结构。
+负责：汇总和组织各个功能模块的路由，包括认证auth、知识库knowledge-bases、文档documents、任务tasks、问答qa和题库question-bank等。
+"""
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import auth, documents, knowledge_bases, qa, question_bank, tasks

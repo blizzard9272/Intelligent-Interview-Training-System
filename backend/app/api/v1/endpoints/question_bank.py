@@ -1,3 +1,10 @@
+"""
+题库接口，定义了与题库相关的API端点。
+负责：
+1. 生成题目：提供一个POST /question-bank/generate端点，接受生成题目的请求参数（如知识库ID、文档ID、题目数量等），创建一个新的题目生成任务，并返回任务的相关信息。
+2. 列出题目：提供一个GET /question-bank端点，返回当前用户创建的所有题目的列表，可以根据知识库ID和文档ID进行过滤。
+3. 错误处理：在生成题目和列出题目的过程中，如果发生错误（如知识库不存在、文档不存在等），返回适当的HTTP错误响应，提示用户相关问题。
+"""
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 

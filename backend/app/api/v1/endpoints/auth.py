@@ -1,3 +1,11 @@
+"""
+认证模块，定义了用户注册、登录和获取当前用户信息的API端点。
+负责：
+1. 用户注册：提供一个POST /register端点，接受用户的注册信息（用户名、邮箱和密码），并创建新的用户账户。
+2. 用户登录：提供一个POST /login端点，接受用户的登录信息（邮箱和密码），验证用户身份，并返回JWT访问令牌。
+3. 获取当前用户信息：提供一个GET /me端点，使用JWT令牌验证用户身份，并返回当前登录用户的详细信息。
+4. 错误处理：在注册和登录过程中，如果发生错误（如邮箱已被注册、用户名已存在、邮箱或密码错误），返回适当的HTTP错误响应，提示用户相关问题。
+"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 

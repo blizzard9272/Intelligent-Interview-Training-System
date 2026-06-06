@@ -1,3 +1,6 @@
+"""
+数据库会话模块，定义了SQLAlchemy的数据库引擎和会话工厂，以及一个生成器函数get_db，用于在FastAPI的依赖项中提供数据库会话对象。
+"""
 from collections.abc import Generator
 
 from sqlalchemy import create_engine

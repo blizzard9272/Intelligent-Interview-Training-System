@@ -139,6 +139,12 @@ ai_project/
 - 聊天气泡
 - 引用来源展示组件
 
+当前状态：
+
+- `components/` 目录仍可继续补充
+- 现阶段多数页面结构仍直接写在 `views/` 中
+- 下一步建议优先把 QA 对话气泡、引用卡片、会话列表提炼成可复用组件
+
 ## 3.3 `stores/`
 
 负责：
@@ -155,6 +161,12 @@ ai_project/
 - 路由页面
 - 业务页面组合
 
+当前状态：
+
+- `auth/`、`knowledge-base/`、`documents/`、`qa/` 页面已经接入主要业务接口
+- `history/` 页面目前仍以占位内容为主，需要继续接入真实问答会话数据
+- `qa/` 页面已具备真实交互，但需要进一步优化主体布局，让对话区占据主要视图
+
 ## 4. 存储结构说明
 
 ## 4.1 `storage/uploads/`
@@ -163,19 +175,13 @@ ai_project/
 
 ## 5. 建议开发顺序
 
-建议按以下顺序开发：
+初版开发顺序已基本完成，当前建议按以下顺序继续迭代：
 
-1. `backend/app/core`
-2. `backend/app/db`
-3. `backend/app/schemas`
-4. `backend/app/api/v1/auth.py`
-5. `backend/app/api/v1/knowledge_bases.py`
-6. `backend/app/api/v1/documents.py`
-7. `backend/app/tasks/ingestion_tasks.py`
-8. `backend/app/rag`
-9. `backend/app/api/v1/qa.py`
-10. `frontend/src/router`
-11. `frontend/src/views`
+1. 修复 `frontend/src/layout` 和 `frontend/src/views` 中的编码与模板问题
+2. 优化 `frontend/src/views/qa` 的工作台布局
+3. 完善 `backend/app/rag/generators` 中的在线模型生成路径
+4. 补齐 `frontend/src/views/history` 的真实数据展示
+5. 继续推进 `backend/app/tasks/question_generation_tasks.py` 与相关服务
 
 ## 6. 二期预留位置
 

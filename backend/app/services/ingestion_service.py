@@ -4,19 +4,21 @@ from sqlalchemy.orm import Session
 
 from app.db.models.document import Document
 from app.db.models.ingestion_task import IngestionTask
-from app.rag.embeddings.hash_embedding import HashEmbeddingProvider
+from app.rag.factory import get_embedding_provider
 from app.rag.loaders.factory import load_sections
 from app.rag.splitters.chunker import build_chunks
 from app.rag.vector_store import ChromaVectorStore
+from app.utils import get_ingestion_config
 
 
 class IngestionService:
     def __init__(self, db: Session):
         self.db = db
-        self.embedding_provider = HashEmbeddingProvider()
+        self.embedding_provider = get_embedding_provider()
         self.vector_store = ChromaVectorStore()
 
     def process_document(self, document_id: int, task_id: int) -> None:
+        ingestion_config = get_ingestion_config()
         document = self.db.get(Document, document_id)
         task = self.db.get(IngestionTask, task_id)
         if not document or not task:
@@ -29,7 +31,7 @@ class IngestionService:
 
             chunks = build_chunks(sections)
             if not chunks:
-                raise ValueError("No content extracted from document")
+                raise ValueError("No text could be extracted from this document. If this is a scanned PDF, OCR support is required.")
 
             self._update_task(task, progress=50, message="Generated chunks")
 
@@ -62,14 +64,14 @@ class IngestionService:
             document.parse_error = None
             task.status = "completed"
             task.progress = 100
-            task.message = "Vector ingestion completed"
+            task.message = ingestion_config.status_messages.completed
             task.finished_at = datetime.now(timezone.utc)
             self.db.commit()
         except Exception as exc:
             document.status = "failed"
             document.parse_error = str(exc)
             task.status = "failed"
-            task.message = str(exc)
+            task.message = f"{ingestion_config.status_messages.failed}: {exc}"
             task.finished_at = datetime.now(timezone.utc)
             self.db.commit()
             raise
@@ -79,7 +81,7 @@ class IngestionService:
         document.parse_error = None
         task.status = "running"
         task.progress = 10
-        task.message = "Starting ingestion"
+        task.message = get_ingestion_config().status_messages.running
         task.started_at = datetime.now(timezone.utc)
         self.db.commit()
 

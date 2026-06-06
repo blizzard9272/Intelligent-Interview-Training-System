@@ -12,7 +12,9 @@ Suggested usage:
 
 - Keep `core/config.py` for environment variables and infrastructure paths
 - Keep this directory for business-level component settings
-- Load these YAML files through a dedicated config loader in a later step
+- Load these YAML files through `app/utils/config_handler.py`
+- Load prompt text through `app/utils/prompts_loader.py`
+- Handle upload and storage filesystem concerns through `app/utils/file_handler.py`
 
 Current files:
 

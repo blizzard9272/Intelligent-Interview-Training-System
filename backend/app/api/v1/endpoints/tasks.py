@@ -1,3 +1,11 @@
+"""
+任务接口，定义了与文档处理相关的API端点。
+负责：
+1. 列出任务：提供一个GET /tasks端点，返回当前用户创建的所有文档处理任务的列表，可以根据文档ID进行过滤。
+2. 获取任务详情：提供一个GET /tasks/{task_id}端点，返回指定任务的详细信息。
+3. 错误处理：在获取任务详情过程中，如果指定的任务不存在，返回适当的HTTP错误响应，提示用户相关问题。
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 

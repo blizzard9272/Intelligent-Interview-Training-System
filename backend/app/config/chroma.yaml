@@ -1,6 +1,5 @@
 storage:
-  persist_directory: "./storage/chroma"
-  collection_name: "document_chunks"
+  collection_name: "document_chunks_v1024"
 
 retrieval:
   default_top_k: 4
