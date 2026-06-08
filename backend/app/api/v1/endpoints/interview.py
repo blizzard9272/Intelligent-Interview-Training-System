@@ -10,6 +10,7 @@ from app.schemas.interview import (
     InterviewSessionListItemResponse,
     InterviewStartRequest,
     InterviewStartResponse,
+    TrainingAnalysisResponse,
 )
 from app.services.interview_service import InterviewService
 
@@ -49,6 +50,15 @@ def list_interview_sessions(
     return InterviewService(db).list_sessions(current_user.id, knowledge_base_id)
 
 
+@router.get("/analysis", response_model=TrainingAnalysisResponse)
+def get_training_analysis(
+    knowledge_base_id: int | None = None,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return InterviewService(db).analyze_training(current_user.id, knowledge_base_id)
+
+
 @router.get("/sessions/{session_id}", response_model=InterviewSessionDetailResponse)
 def get_interview_session(
     session_id: str,
@@ -59,3 +69,14 @@ def get_interview_session(
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="面试会话不存在")
     return session
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_interview_session(
+    session_id: str,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    deleted = InterviewService(db).delete_session(current_user.id, session_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="面试会话不存在")

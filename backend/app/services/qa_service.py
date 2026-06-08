@@ -56,6 +56,20 @@ class QAService:
         )
         return AskResponse(session_id=session.id, answer=answer, references=references)
 
+    def retrieve_references_for_question(
+        self,
+        *,
+        user_id: int,
+        knowledge_base_id: int,
+        question: str,
+    ) -> list[QAReference]:
+        self._ensure_kb_access(user_id, knowledge_base_id)
+        return self._retrieve_references(
+            user_id=user_id,
+            knowledge_base_id=knowledge_base_id,
+            question=question,
+        )
+
     def list_sessions(self, user_id: int) -> list[QASession]:
         stmt = select(QASession).where(QASession.user_id == user_id).order_by(QASession.updated_at.desc())
         return list(self.db.scalars(stmt))

@@ -1,0 +1,90 @@
+[
+  {
+    "id": "rag-concept-baseline",
+    "knowledge_base_id": 1,
+    "question": "什么是 RAG，它和直接让大模型回答有什么区别？",
+    "expected_document_ids": [],
+    "expected_file_names": ["rag_notes.md"],
+    "expected_keywords": ["retrieval", "generation", "知识库"]
+  },
+  {
+    "id": "rag-difference-concept",
+    "knowledge_base_id": 1,
+    "question": "RAG 和模型微调的主要区别是什么？",
+    "expected_document_ids": [],
+    "expected_file_names": ["rag_notes.md"],
+    "expected_keywords": ["区别", "微调", "检索"]
+  },
+  {
+    "id": "rag-design-tradeoff",
+    "knowledge_base_id": 1,
+    "question": "为什么 RAG 系统通常还需要重排，而不是只做向量召回？",
+    "expected_document_ids": [],
+    "expected_file_names": ["rag_design.md"],
+    "expected_keywords": ["重排", "召回", "排序"]
+  },
+  {
+    "id": "chunking-concept-doc",
+    "knowledge_base_id": 1,
+    "question": "为什么概念型技术文档在 chunk 切分时更适合保留标题和段落结构？",
+    "expected_document_ids": [],
+    "expected_file_names": ["chunking_guide.md"],
+    "expected_keywords": ["标题", "段落", "切分"]
+  },
+  {
+    "id": "architecture-overview",
+    "knowledge_base_id": 1,
+    "question": "一个检索增强系统的典型架构链路通常包括哪些步骤？",
+    "expected_document_ids": [],
+    "expected_file_names": ["rag_architecture.md"],
+    "expected_keywords": ["检索", "生成", "链路"]
+  },
+  {
+    "id": "design-doc-question",
+    "knowledge_base_id": 1,
+    "question": "在系统设计文档里，trade-off 部分为什么重要？",
+    "expected_document_ids": [],
+    "expected_file_names": ["system_design_notes.md"],
+    "expected_keywords": ["trade-off", "权衡", "方案"]
+  },
+  {
+    "id": "concept-example-question",
+    "knowledge_base_id": 1,
+    "question": "解释一个技术概念时，为什么最好同时给出定义、作用和一个例子？",
+    "expected_document_ids": [],
+    "expected_file_names": ["concept_explanation.md"],
+    "expected_keywords": ["定义", "作用", "例子"]
+  },
+  {
+    "id": "project-practice-question",
+    "knowledge_base_id": 1,
+    "question": "项目复盘类文档更适合被抽成什么类型的面试题？",
+    "expected_document_ids": [],
+    "expected_file_names": ["project_review.md"],
+    "expected_keywords": ["项目", "场景", "实践"]
+  },
+  {
+    "id": "implementation-detail-question",
+    "knowledge_base_id": 1,
+    "question": "当资料主要描述实现步骤和配置细节时，系统应该更偏向生成哪类问题？",
+    "expected_document_ids": [],
+    "expected_file_names": ["implementation_steps.md"],
+    "expected_keywords": ["实现", "步骤", "配置"]
+  },
+  {
+    "id": "concept-vs-qa-doc",
+    "knowledge_base_id": 1,
+    "question": "概念文档和标准问答文档在题目生成策略上应该有什么差异？",
+    "expected_document_ids": [],
+    "expected_file_names": ["question_generation_notes.md"],
+    "expected_keywords": ["概念文档", "问答", "题目生成"]
+  },
+  {
+    "id": "agent-routing-baseline",
+    "knowledge_base_id": 1,
+    "question": "什么时候适合使用 Agent 路由而不是单轮问答？",
+    "expected_document_ids": [],
+    "expected_file_names": ["agent_design.md"],
+    "expected_keywords": ["route", "tool", "workflow"]
+  }
+]

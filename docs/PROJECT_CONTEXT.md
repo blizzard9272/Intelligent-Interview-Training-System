@@ -1,185 +1,126 @@
-# Project Context
+# 项目上下文
 
-## 1. Project Goal
+## 1. 项目定位
 
-Build an interview training system with:
+当前项目已经不再是一个单纯的 RAG Demo，而是逐步演进成一个面向“知识库问答 + 题库生成 + 面试训练 + 训练分析”的综合型练习系统。
 
-- user auth
-- knowledge base management
-- document upload and ingestion
-- retrieval-augmented QA
-- question generation
-- interview simulation
-- interview summary and long-term training analysis
+现阶段最完整、最可演示的主链路是：
 
-## 2. Current Status
+1. 上传文档并完成入库
+2. 基于知识库进行 RAG 问答
+3. 从文档内容生成题库题目
+4. 发起模拟面试
+5. 完成单题或多题训练
+6. 获取逐轮反馈和最终总结
+7. 在训练分析页查看弱点、推荐专项训练，并再次发起 focused drill
 
-Implemented:
+## 2. 当前已经完成的核心能力
 
-- FastAPI backend skeleton
-- PostgreSQL + Alembic setup
-- JWT auth
-- knowledge base CRUD
-- document upload
-- task records
-- real ingestion pipeline for `txt`, `md`, `pdf`
-- local embedding for offline development
-- Chroma persistence
-- retrieval-backed QA with references
-- frontend auth flow and protected routing
-- frontend knowledge base and document management pages
-- frontend QA page with knowledge base selection, session switching, answer display, and references
-- QA session persistence and session detail retrieval
-- frontend history page with real session list and detail rendering
-- global API error popup on the frontend with Element Plus `ElMessage`
-- backend exception handling with request logging
-- QA fallback behavior:
-  - answer from retrieved document context first
-  - when no useful references exist, allow model fallback and prefix with `据我所知，`
-- reusable frontend components extracted from QA and document pages
-- question generation module with persistence
-- interview session persistence
-- interview page with multi-round follow-up flow
-- automatic interview summary generation and persistence after session completion
-- interview question selection by knowledge base, difficulty, and question type
+### 2.1 知识库与 RAG 基础链路
 
-Not implemented yet:
+- 支持文档上传、入库任务、异步处理与状态跟踪
+- 支持文本切分、向量化、写入 Chroma
+- 支持基于知识库的问答与引用片段返回
+- 支持在检索不足时进行受控补充回答
 
-- rerank or hybrid retrieval
-- richer interview orchestration strategy such as document-scoped drills and recent-question preference
-- long-term interview analytics and weak-point tracking
-- dedicated automated unit and integration tests for interview and question-generation modules
-- LangGraph-based interview workflow
+### 2.2 题库生成
 
-## 3. What Was Completed Today
+- 已具备从入库文档生成题目的能力
+- 生成结果会持久化到 `question_bank`
+- 题目已支持基础难度、标签、参考答案等字段
+- 当前已使用的题型标签包括：
+  - `concept`
+  - `scenario`
+  - `followup`
+  - `design`
 
-Today the project moved from a basic interview MVP to a more usable training workflow:
+### 2.3 模拟面试与训练流
 
-- implemented interview summary generation as a reusable backend capability
-- reused the `interview_summary` prompt and added local fallback when model generation fails
-- persisted the generated summary as a session turn with role `interview_summary`
-- exposed summary content and summary metadata in interview API responses
-- added interview summary rendering to the frontend interview page
-- added interview start filters for:
-  - difficulty
-  - question type
-- returned question difficulty and tags through the interview API
-- updated the interview page to support focused interview sessions
-- verified the latest changes with backend compile and frontend build
+- 已完成 `InterviewSession` / `InterviewTurn` 持久化
+- 支持发起面试、提交回答、生成反馈、继续追问、结束会话
+- 支持训练模式：
+  - `single_question`
+  - `question_set`
+- 支持训练参数：
+  - `knowledge_base_id`
+  - `source_document_id`
+  - `difficulty`
+  - `question_type`
+  - `question_strategy`
+  - `drill_mode`
+  - `question_count`
+  - `focus_topic`
+- 支持题目选择策略：
+  - `random`
+  - `recent_first`
+  - `avoid_recent`
+- 支持从专项分析结果中直接发起 focused drill
 
-## 4. Current Backend Decisions
+### 2.4 面试总结与训练分析
 
-- Framework: FastAPI
-- Database: PostgreSQL
-- Migrations: Alembic
-- Vector store: Chroma
-- Async mode now: FastAPI BackgroundTasks
-- Embedding now: local hash embedding for development
-- QA generation now: conditional Qwen chat provider with local grounded synthesis fallback
-- Interview summary persistence now: stored as `InterviewTurn(role="interview_summary")`
-- Interview question strategy now: filter on `QuestionBank.difficulty` and `QuestionBank.tags`
+- 会话结束后自动生成 interview summary
+- summary 已持久化为特殊 turn，而不是额外新增一张汇总表
+- 已新增训练分析接口 `GET /interview/analysis`
+- 当前训练分析能力包括：
+  - 总训练次数
+  - 已完成训练次数
+  - 平均分、最高分、最近分数
+  - 高频弱点
+  - 高频亮点
+  - 题型分布
+  - 来源文档分布
+  - 最近成绩趋势
+  - 推荐训练方向
+  - 专项 drill 推荐
+  - focused drill 效果追踪
 
-## 5. Current Mainline Flow
+### 2.5 前端训练体验
 
-Auth flow:
+- Interview 页面已支持训练参数配置与自动启动
+- Training Analysis 页面已上线，并可从导航进入
+- 分析页支持展示推荐 drill，并一键跳转到 Interview 页开始专项训练
+- Focused drill 路由参数已打通，能自动预填训练配置
 
-- register
-- login
-- get current user
+### 2.6 测试与验证
 
-Knowledge base flow:
+- 已补齐 interview service 核心单元测试，当前共 12 个测试
+- 已覆盖的重点测试包括：
+  - 题目筛选与策略排序
+  - `question_set` 多题训练
+  - `focus_topic` 优先匹配
+  - 训练分析聚合
+  - focused drill 效果统计
+- 已完成的验证：
+  - `python -m compileall backend/app`
+  - `npm run build`
+  - `.\.venv\Scripts\python.exe -m unittest discover -s tests -v`
 
-- create knowledge base
-- list knowledge bases
+## 3. 当前系统状态判断
 
-Document flow:
+如果从“是否能完整演示一条训练闭环”来看，当前项目已经跨过 MVP 阶段，进入“可训练、可分析、可迭代”的阶段。
 
-- upload file
-- create document record
-- create ingestion task
-- background ingestion
-- parse file
-- clean text
-- split chunks
-- compute local embeddings
-- write to Chroma
-- update task and document state
+当前最强的产品主线不是纯问答，而是：
 
-QA flow:
+- 让知识库生成训练材料
+- 让用户进行面试训练
+- 让系统识别弱点
+- 让系统自动推荐下一轮专项练习
 
-- accept question
-- validate knowledge base access
-- embed query
-- retrieve chunks from Chroma
-- generate answer through configured chat provider when available
-- fall back to local grounded synthesis when online chat is unavailable
-- if no retrieved references are useful, allow model-knowledge fallback with prefix `据我所知，`
-- return references
-- save session history
+这条主线已经形成较清晰的闭环，也是后续继续优化面试价值的基础。
 
-Question generation flow:
+## 4. 当前仍然存在的限制
 
-- select knowledge base and optional document
-- read completed document chunks
-- generate structured interview questions
-- persist question, reference answer, tags, and difficulty
+- 训练分析中的弱点聚合仍以原始文本为主，规范化程度不够
+- RAG 侧当前更偏“能用”，还没有系统做召回质量、重排、答案评估的优化
+- 前端虽然已可用，但分析可视化仍偏基础
+- 现阶段的专项 drill 生成仍是启发式规则，不是长期学习画像驱动
 
-Interview flow:
+## 5. 下一阶段建议切换重点
 
-- start interview session
-- select a question by knowledge base and optional difficulty / question type
-- persist turns for interviewer, candidate, feedback, follow-up, and summary
-- generate follow-up questions until the configured round limit
-- automatically generate and persist a session summary after completion
+如果接下来要把项目打磨成更适合面试展示的作品，建议将重心从“训练流补全”切到“RAG 质量优化与可解释性提升”。
 
-## 6. Recommended Next Steps
+原因有三点：
 
-Priority 1:
-
-- add interview orchestration controls:
-  - source document filtering
-  - recent-question preference
-  - configurable question count or drill mode
-
-Priority 2:
-
-- add persistence-backed training analysis:
-  - weak-point aggregation
-  - repeated mistake themes
-  - summary-based review suggestions
-
-Priority 3:
-
-- add automated tests for:
-  - interview session start
-  - filtered question selection
-  - follow-up generation
-  - summary generation fallback
-
-Priority 4:
-
-- explore rerank or hybrid retrieval to improve QA and question quality
-
-## 7. Important Files
-
-- `backend/app/services/qa_service.py`
-- `backend/app/services/question_bank_service.py`
-- `backend/app/services/interview_service.py`
-- `backend/app/api/v1/endpoints/interview.py`
-- `backend/app/schemas/interview.py`
-- `backend/app/config/prompt.yaml`
-- `frontend/src/views/documents/DocumentsView.vue`
-- `frontend/src/views/qa/QAView.vue`
-- `frontend/src/views/history/HistoryView.vue`
-- `frontend/src/views/interview/InterviewView.vue`
-- `frontend/src/api/interview.ts`
-
-## 8. How Future Sessions Should Resume
-
-When continuing this project:
-
-1. Read this file and `docs/DEVELOPMENT_PLAN.md` first.
-2. Keep the current PostgreSQL + Chroma + FastAPI architecture.
-3. Treat the current interview module as the active mainline module.
-4. Prefer building deeper interview training orchestration before more frontend polishing.
-5. If adding summary persistence fields to the session table later, do it only when the current turn-based storage becomes a real limitation.
+1. RAG 是更容易在面试中被深问的技术核心
+2. RAG 优化能自然连接检索、排序、提示词、评估、观测等多个工程话题
+3. 当前训练系统已经具备展示闭环，继续深挖 RAG 的投入产出更高

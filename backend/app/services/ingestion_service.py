@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.models.document import Document
 from app.db.models.ingestion_task import IngestionTask
 from app.rag.factory import get_embedding_provider
+from app.rag.document_profile import classify_document_kind
 from app.rag.loaders.factory import load_sections
 from app.rag.splitters.chunker import build_chunks
 from app.rag.vector_store import ChromaVectorStore
@@ -27,6 +28,7 @@ class IngestionService:
         try:
             self._mark_started(document, task)
             sections = load_sections(document.file_path, document.file_type)
+            document.document_kind = classify_document_kind(document.file_name, sections)
             self._update_task(task, progress=25, message="Loaded and cleaned source content")
 
             chunks = build_chunks(sections)
@@ -50,9 +52,13 @@ class IngestionService:
                         "document_id": document.id,
                         "file_name": document.file_name,
                         "file_type": document.file_type,
+                        "document_kind": document.document_kind,
                         "chunk_index": index,
                         "section_title": chunk["section_title"] or "",
                         "page_no": chunk["page_no"] or 0,
+                        "section_index": chunk.get("section_index", 0),
+                        "content_type_hint": chunk.get("content_type_hint", "general"),
+                        "starts_with_question": bool(chunk.get("starts_with_question", False)),
                     }
                 )
 

@@ -18,6 +18,7 @@ class Document(TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(30), default="pending")
     parse_error: Mapped[str | None] = mapped_column(Text(), nullable=True)
     chunk_count: Mapped[int] = mapped_column(default=0)
+    document_kind: Mapped[str] = mapped_column(String(40), default="general")
 
     user = relationship("User", back_populates="documents")
     knowledge_base = relationship("KnowledgeBase", back_populates="documents")

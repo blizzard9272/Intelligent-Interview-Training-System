@@ -67,6 +67,7 @@ const navItems = [
   { to: "/qa", label: "问答助手", description: "像专属面试助理一样使用你的知识库进行对话" },
   { to: "/history", label: "历史记录", description: "查看会话历史与处理轨迹" },
   { to: "/interview", label: "模拟面试", description: "开始一轮真实的题目问答并获取即时反馈" },
+  { to: "/training-analysis", label: "训练分析", description: "查看面试得分趋势、高频弱点与复习建议" },
 ];
 
 const currentSection = computed(() => {

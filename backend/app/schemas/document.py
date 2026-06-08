@@ -16,6 +16,7 @@ class DocumentResponse(BaseModel):
     status: str
     parse_error: str | None
     chunk_count: int
+    document_kind: str
     created_at: datetime
     updated_at: datetime
 
@@ -32,4 +33,7 @@ class DocumentChunkResponse(BaseModel):
     chunk_index: int
     section_title: str | None = None
     page_no: int | None = None
+    section_index: int | None = None
+    content_type_hint: str | None = None
+    starts_with_question: bool | None = None
     content: str

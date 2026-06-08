@@ -20,4 +20,5 @@ class QuestionBank(TimestampMixin, Base):
 
     user = relationship("User", back_populates="questions")
     knowledge_base = relationship("KnowledgeBase", back_populates="questions")
+    source_document = relationship("Document")
     interview_sessions = relationship("InterviewSession", back_populates="question_bank_item")

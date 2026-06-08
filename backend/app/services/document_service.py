@@ -40,6 +40,7 @@ class DocumentService:
             file_path=file_path,
             file_size=file_size,
             status="pending",
+            document_kind="general",
         )
         self.db.add(document)
         self.db.commit()
@@ -73,6 +74,9 @@ class DocumentService:
                     "chunk_index": int(metadata.get("chunk_index", index)),
                     "section_title": metadata.get("section_title") or None,
                     "page_no": metadata.get("page_no") or None,
+                    "section_index": metadata.get("section_index") or None,
+                    "content_type_hint": metadata.get("content_type_hint") or None,
+                    "starts_with_question": bool(metadata.get("starts_with_question", False)),
                     "content": content,
                 }
             )

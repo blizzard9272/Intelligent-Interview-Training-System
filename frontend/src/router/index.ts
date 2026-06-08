@@ -8,6 +8,7 @@ import HistoryView from "../views/history/HistoryView.vue";
 import InterviewView from "../views/interview/InterviewView.vue";
 import KnowledgeBaseView from "../views/knowledge-base/KnowledgeBaseView.vue";
 import QAView from "../views/qa/QAView.vue";
+import TrainingAnalysisView from "../views/training-analysis/TrainingAnalysisView.vue";
 import pinia from "../stores";
 import { useAuthStore } from "../stores/auth";
 
@@ -20,6 +21,7 @@ const routes: RouteRecordRaw[] = [
   { path: "/qa", name: "qa", component: QAView },
   { path: "/history", name: "history", component: HistoryView },
   { path: "/interview", name: "interview", component: InterviewView },
+  { path: "/training-analysis", name: "training-analysis", component: TrainingAnalysisView },
 ];
 
 const router = createRouter({
