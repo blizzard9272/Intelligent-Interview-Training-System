@@ -190,6 +190,11 @@ class QAService:
                         file_name=str(metadata.get("file_name", "")),
                         chunk_index=chunk_index,
                         snippet=doc_text[:max_snippet_length],
+                        section_title=str(metadata.get("section_title", "")).strip() or None,
+                        content_type_hint=str(metadata.get("content_type_hint", "")).strip() or None,
+                        document_kind=str(metadata.get("document_kind", "")).strip() or None,
+                        starts_with_question=bool(metadata.get("starts_with_question", False)),
+                        context_role=self._build_context_role(metadata),
                     ),
                     "metadata": metadata,
                     "distance": self._extract_distance(distances, index),
@@ -277,6 +282,22 @@ class QAService:
             if candidate_value == expected_value:
                 return max(0.0, base - (index * step))
         return 0.0
+
+    def _build_context_role(self, metadata: dict) -> str:
+        content_type_hint = str(metadata.get("content_type_hint", "")).strip().lower()
+        if content_type_hint == "concept_explanation":
+            return "concept"
+        if content_type_hint == "design_discussion":
+            return "design"
+        if content_type_hint == "implementation_detail":
+            return "implementation"
+        if content_type_hint == "example_driven":
+            return "example"
+        if content_type_hint == "question_answer":
+            if bool(metadata.get("starts_with_question", False)):
+                return "core_answer"
+            return "qa_pair"
+        return "general"
 
     def _get_or_create_session(self, user_id: int, knowledge_base_id: int, session_id: int | None, question: str) -> QASession:
         if session_id is not None:

@@ -6,6 +6,7 @@ from typing import Any
 import httpx
 
 from app.core.config import settings
+from app.rag.context_assembler import build_structured_context
 from app.schemas.qa import QAReference
 from app.utils import get_model_config, get_prompt_text
 
@@ -33,12 +34,7 @@ class QwenChatProvider:
 
     def answer_question(self, question: str, references: list[QAReference]) -> str:
         system_prompt = get_prompt_text("qa").strip()
-        context_lines = []
-        for index, reference in enumerate(references, start=1):
-            context_lines.append(
-                f"[{index}] file={reference.file_name}, chunk={reference.chunk_index}\n{reference.snippet}"
-            )
-        context_text = "\n\n".join(context_lines) if context_lines else "No retrieved context."
+        context_text = build_structured_context(question, references)
         no_reference_guidance = (
             "No document reference was retrieved for this question. "
             "You may answer from your general knowledge, but do not claim the answer is grounded in uploaded files."

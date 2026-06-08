@@ -14,6 +14,11 @@ class QAReference(BaseModel):
     file_name: str
     chunk_index: int
     snippet: str
+    section_title: str | None = None
+    content_type_hint: str | None = None
+    document_kind: str | None = None
+    starts_with_question: bool | None = None
+    context_role: str | None = None
 
 
 class AskResponse(BaseModel):
@@ -43,4 +48,3 @@ class QASessionDetailResponse(BaseModel):
     knowledge_base_id: int
     title: str | None
     messages: list[QAMessageResponse]
-
