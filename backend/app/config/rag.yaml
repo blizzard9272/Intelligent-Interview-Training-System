@@ -1,6 +1,6 @@
 retrieval:
   top_k: 4
-  enable_rerank: false
+  enable_rerank: true
   enable_hybrid_retrieval: false
   min_reference_count: 1
 

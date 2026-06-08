@@ -39,18 +39,20 @@ class ChromaVectorStore:
         user_id: int,
         knowledge_base_id: int,
         top_k: int | None = None,
+        extra_filters: list[dict[str, object]] | None = None,
     ) -> dict:
         chroma_config = get_chroma_config()
         requested_top_k = top_k or chroma_config.retrieval.default_top_k
         requested_top_k = min(requested_top_k, chroma_config.retrieval.max_top_k)
+        filters = [
+            {"user_id": user_id},
+            {"knowledge_base_id": knowledge_base_id},
+        ]
+        if extra_filters:
+            filters.extend(extra_filters)
         return self.collection.query(
             query_embeddings=[query_embedding],
             n_results=requested_top_k,
-            where={
-                "$and": [
-                    {"user_id": user_id},
-                    {"knowledge_base_id": knowledge_base_id},
-                ]
-            },
+            where={"$and": filters},
             include=["documents", "metadatas", "distances"],
         )

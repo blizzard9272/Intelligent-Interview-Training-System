@@ -28,3 +28,10 @@ def get_session(session_id: int, current_user=Depends(get_current_user), db: Ses
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     return session
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_session(session_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    deleted = QAService(db).delete_session(current_user.id, session_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")

@@ -56,3 +56,7 @@ export async function getQASessionDetail(sessionId: number) {
   const { data } = await http.get<QASessionDetail>(`/qa/sessions/${sessionId}`);
   return data;
 }
+
+export async function deleteQASession(sessionId: number) {
+  await http.delete(`/qa/sessions/${sessionId}`);
+}

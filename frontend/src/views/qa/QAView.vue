@@ -19,14 +19,36 @@
           <div v-if="loadingSessions" class="empty-state">正在加载会话...</div>
           <div v-else-if="sessions.length === 0" class="empty-state">暂时还没有会话。</div>
           <div v-else class="session-list">
-            <SessionListItem
+            <div
               v-for="session in sessions"
               :key="session.id"
-              :title="session.title || `会话 #${session.id}`"
-              :time-label="formatDate(session.updated_at)"
-              :active="activeSessionId === session.id"
-              @select="loadSessionDetail(session.id)"
-            />
+              class="session-entry"
+            >
+              <SessionListItem
+                :title="session.title || `会话 #${session.id}`"
+                :time-label="formatDate(session.updated_at)"
+                :active="activeSessionId === session.id"
+                @select="loadSessionDetail(session.id)"
+              />
+              <div class="session-actions">
+                <el-popconfirm
+                  title="确认删除这条问答会话吗？删除后无法恢复。"
+                  confirm-button-text="删除"
+                  cancel-button-text="取消"
+                  @confirm="handleDeleteSession(session.id)"
+                >
+                  <template #reference>
+                    <el-button
+                      text
+                      type="danger"
+                      :loading="deletingSessionId === session.id"
+                    >
+                      删除这条会话
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -111,15 +133,23 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
-import { askQuestion, getQASessionDetail, getQASessions, type QAMessage, type QASessionItem } from "../../api/qa";
+import {
+  askQuestion,
+  deleteQASession,
+  getQASessionDetail,
+  getQASessions,
+  type QAMessage,
+  type QASessionItem
+} from "../../api/qa";
 import { getKnowledgeBases, type KnowledgeBaseItem } from "../../api/knowledgeBase";
 import ChatMessageCard from "../../components/qa/ChatMessageCard.vue";
 import SessionListItem from "../../components/qa/SessionListItem.vue";
 import AppShell from "../../layout/AppShell.vue";
 
 const route = useRoute();
+const router = useRouter();
 
 const knowledgeBases = ref<KnowledgeBaseItem[]>([]);
 const selectedKnowledgeBaseId = ref<number | undefined>();
@@ -130,6 +160,7 @@ const loadingDetail = ref(false);
 const sessions = ref<QASessionItem[]>([]);
 const messages = ref<QAMessage[]>([]);
 const activeSessionId = ref<number | undefined>();
+const deletingSessionId = ref<number | null>(null);
 const message = ref("");
 const errorMessage = ref("");
 const expandedReferenceMap = ref<Record<number, boolean>>({});
@@ -183,12 +214,54 @@ async function loadSessionDetail(sessionId: number) {
   }
 }
 
-function startNewSession() {
+async function clearSessionQuery() {
+  if (route.query.sessionId === undefined) {
+    return;
+  }
+  const nextQuery = { ...route.query };
+  delete nextQuery.sessionId;
+  await router.replace({ query: nextQuery });
+}
+
+async function startNewSession() {
   activeSessionId.value = undefined;
   messages.value = [];
   message.value = "已开始新的会话。";
   errorMessage.value = "";
   expandedReferenceMap.value = {};
+  await clearSessionQuery();
+}
+
+async function handleDeleteSession(sessionId: number) {
+  deletingSessionId.value = sessionId;
+  errorMessage.value = "";
+  message.value = "";
+  try {
+    await deleteQASession(sessionId);
+
+    if (activeSessionId.value === sessionId) {
+      activeSessionId.value = undefined;
+      messages.value = [];
+      expandedReferenceMap.value = {};
+      await clearSessionQuery();
+    }
+
+    await loadSessions();
+
+    if (!activeSessionId.value && sessions.value.length > 0) {
+      await loadSessionDetail(sessions.value[0].id);
+    }
+
+    message.value = "会话已删除。";
+  } catch (error: any) {
+    if (error?.response?.data?.detail) {
+      errorMessage.value = String(error.response.data.detail);
+    } else {
+      errorMessage.value = "删除会话失败，请稍后重试。";
+    }
+  } finally {
+    deletingSessionId.value = null;
+  }
 }
 
 async function handleAsk() {
@@ -314,6 +387,16 @@ watch(
   min-height: 0;
 }
 
+.session-entry {
+  display: grid;
+  gap: 8px;
+}
+
+.session-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .qa-conversation {
   gap: 18px;
   position: sticky;
@@ -400,7 +483,8 @@ watch(
   }
 
   .composer-head,
-  .composer-actions {
+  .composer-actions,
+  .session-actions {
     flex-direction: column;
     align-items: stretch;
   }

@@ -37,15 +37,37 @@
           <div v-if="loadingSessions" class="empty-state">正在加载会话...</div>
           <div v-else-if="sessions.length === 0" class="empty-state">还没有历史会话，先去问答助手开始一次对话吧。</div>
           <div v-else class="session-list">
-            <SessionListItem
+            <div
               v-for="session in sessions"
               :key="session.id"
-              :title="session.title || `会话 #${session.id}`"
-              :badge="`知识库 #${session.knowledge_base_id}`"
-              :time-label="`更新于 ${formatDate(session.updated_at)}`"
-              :active="activeSessionId === session.id"
-              @select="loadSessionDetail(session.id)"
-            />
+              class="session-entry"
+            >
+              <SessionListItem
+                :title="session.title || `会话 #${session.id}`"
+                :badge="`知识库 #${session.knowledge_base_id}`"
+                :time-label="`更新于 ${formatDate(session.updated_at)}`"
+                :active="activeSessionId === session.id"
+                @select="loadSessionDetail(session.id)"
+              />
+              <div class="session-actions">
+                <el-popconfirm
+                  title="确认删除这条历史会话吗？删除后无法恢复。"
+                  confirm-button-text="删除"
+                  cancel-button-text="取消"
+                  @confirm="handleDeleteSession(session.id)"
+                >
+                  <template #reference>
+                    <el-button
+                      text
+                      type="danger"
+                      :loading="deletingSessionId === session.id"
+                    >
+                      删除这条会话
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -87,7 +109,13 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
-import { getQASessionDetail, getQASessions, type QASessionDetail, type QASessionItem } from "../../api/qa";
+import {
+  deleteQASession,
+  getQASessionDetail,
+  getQASessions,
+  type QASessionDetail,
+  type QASessionItem
+} from "../../api/qa";
 import ChatMessageCard from "../../components/qa/ChatMessageCard.vue";
 import SessionListItem from "../../components/qa/SessionListItem.vue";
 import AppShell from "../../layout/AppShell.vue";
@@ -99,6 +127,7 @@ const activeSessionId = ref<number | undefined>();
 const activeSessionDetail = ref<QASessionDetail | null>(null);
 const loadingSessions = ref(false);
 const loadingDetail = ref(false);
+const deletingSessionId = ref<number | null>(null);
 const errorMessage = ref("");
 
 const activeSession = computed(() => {
@@ -131,6 +160,33 @@ async function loadSessionDetail(sessionId: number) {
     errorMessage.value = "加载会话详情失败。";
   } finally {
     loadingDetail.value = false;
+  }
+}
+
+async function handleDeleteSession(sessionId: number) {
+  deletingSessionId.value = sessionId;
+  errorMessage.value = "";
+  try {
+    await deleteQASession(sessionId);
+
+    if (activeSessionId.value === sessionId) {
+      activeSessionId.value = undefined;
+      activeSessionDetail.value = null;
+    }
+
+    sessions.value = sessions.value.filter((item) => item.id !== sessionId);
+
+    if (!activeSessionId.value && sessions.value.length > 0) {
+      await loadSessionDetail(sessions.value[0].id);
+    }
+  } catch (error: any) {
+    if (error?.response?.data?.detail) {
+      errorMessage.value = String(error.response.data.detail);
+    } else {
+      errorMessage.value = "删除历史会话失败。";
+    }
+  } finally {
+    deletingSessionId.value = null;
   }
 }
 
@@ -202,6 +258,16 @@ onMounted(async () => {
   gap: 14px;
 }
 
+.session-entry {
+  display: grid;
+  gap: 8px;
+}
+
+.session-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 @media (max-width: 1080px) {
   .overview-metrics,
   .history-layout {
@@ -210,6 +276,11 @@ onMounted(async () => {
 
   .history-list-panel {
     position: static;
+  }
+
+  .session-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 </style>

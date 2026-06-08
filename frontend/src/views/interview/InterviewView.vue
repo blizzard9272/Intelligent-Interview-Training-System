@@ -150,23 +150,24 @@
                 :active="activeSessionId === session.session_id"
                 @select="loadSessionDetail(session.session_id)"
               />
-              <el-popconfirm
-                title="确认删除这条面试会话吗？删除后无法恢复。"
-                confirm-button-text="删除"
-                cancel-button-text="取消"
-                @confirm="handleDeleteSession(session.session_id)"
-              >
-                <template #reference>
-                  <el-button
-                    text
-                    type="danger"
-                    class="session-delete-button"
-                    :loading="deletingSessionId === session.session_id"
-                  >
-                    删除
-                  </el-button>
-                </template>
-              </el-popconfirm>
+              <div class="session-actions">
+                <el-popconfirm
+                  title="确认删除这条面试会话吗？删除后无法恢复。"
+                  confirm-button-text="删除"
+                  cancel-button-text="取消"
+                  @confirm="handleDeleteSession(session.session_id)"
+                >
+                  <template #reference>
+                    <el-button
+                      text
+                      type="danger"
+                      :loading="deletingSessionId === session.session_id"
+                    >
+                      删除这条会话
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </div>
             </div>
           </div>
         </div>
@@ -787,14 +788,13 @@ onMounted(async () => {
 }
 
 .session-entry {
-  position: relative;
+  display: grid;
+  gap: 8px;
 }
 
-.session-delete-button {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  z-index: 1;
+.session-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .interview-main {
@@ -1017,7 +1017,8 @@ onMounted(async () => {
   .answer-actions,
   .reference-answer-head,
   .turn-head,
-  .summary-head {
+  .summary-head,
+  .session-actions {
     flex-direction: column;
     align-items: stretch;
   }
