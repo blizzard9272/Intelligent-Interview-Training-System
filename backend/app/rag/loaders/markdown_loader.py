@@ -20,5 +20,5 @@ def load_markdown_file(file_path: str) -> list[LoadedSection]:
         body = clean_text(content[start:end])
         if not body:
             continue
-        sections.append(LoadedSection(text=body, section_title=match.group(2).strip()))
+        sections.append(LoadedSection(text=body, section_title=clean_text(match.group(2).strip())))
     return sections or [LoadedSection(text=clean_text(content))]

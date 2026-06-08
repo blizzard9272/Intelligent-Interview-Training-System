@@ -1,5 +1,6 @@
 import logging
 import re
+import json
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -7,9 +8,19 @@ from sqlalchemy.orm import Session
 from app.db.models.knowledge_base import KnowledgeBase
 from app.db.models.qa import QAMessage, QASession
 from app.rag.factory import generate_answer, get_embedding_provider
+from app.rag.context_assembler import build_structured_context_bundle
 from app.rag.query_router import build_query_plan, classify_query_route
 from app.rag.vector_store import ChromaVectorStore
-from app.schemas.qa import AskRequest, AskResponse, QAReference, QAMessageResponse, QASessionDetailResponse
+from app.schemas.qa import (
+    AskRequest,
+    AskResponse,
+    QADebugTrace,
+    QAMessageResponse,
+    QAReference,
+    QARetrievalCandidate,
+    QARetrievalStep,
+    QASessionDetailResponse,
+)
 from app.utils import get_rag_config
 
 logger = logging.getLogger("app.services.qa")
@@ -37,6 +48,7 @@ class QAService:
             knowledge_base_id=payload.knowledge_base_id,
             question=payload.question,
         )
+        debug_trace = self._build_debug_trace(question=payload.question, references=references)
         answer = generate_answer(payload.question, references)
 
         user_message = QAMessage(session_id=session.id, role="user", content=payload.question, references_json=None)
@@ -44,7 +56,10 @@ class QAService:
             session_id=session.id,
             role="assistant",
             content=answer,
-            references_json=[item.model_dump() for item in references],
+            references_json={
+                "references": [item.model_dump() for item in references],
+                "debug_trace": debug_trace.model_dump(),
+            },
         )
         self.db.add_all([user_message, assistant_message])
         self.db.commit()
@@ -56,7 +71,8 @@ class QAService:
             len(references),
             len(answer),
         )
-        return AskResponse(session_id=session.id, answer=answer, references=references)
+        self._log_debug_trace(session.id, debug_trace)
+        return AskResponse(session_id=session.id, answer=answer, references=references, debug_trace=debug_trace)
 
     def retrieve_references_for_question(
         self,
@@ -81,14 +97,7 @@ class QAService:
         session = self.db.scalar(stmt)
         if not session:
             return None
-        messages = [
-            QAMessageResponse(
-                role=message.role,
-                content=message.content,
-                references_json=message.references_json,
-            )
-            for message in sorted(session.messages, key=lambda item: item.id)
-        ]
+        messages = [self._build_message_response(message) for message in sorted(session.messages, key=lambda item: item.id)]
         return QASessionDetailResponse(
             id=session.id,
             knowledge_base_id=session.knowledge_base_id,
@@ -122,6 +131,8 @@ class QAService:
         query_plan = build_query_plan(route)
         candidates: list[dict] = []
         seen_chunks: set[tuple[int, int]] = set()
+        retrieval_steps: list[QARetrievalStep] = []
+        self._last_rerank_enabled = bool(rag_config.retrieval.enable_rerank)
 
         logger.info(
             "qa_retrieval_route_selected intent=%s knowledge_base_id=%s plan_steps=%s",
@@ -138,12 +149,18 @@ class QAService:
                 top_k=rag_config.retrieval.top_k,
                 extra_filters=[plan_filters] if plan_filters else None,
             )
-            candidates.extend(
-                self._collect_candidates_from_result(
-                    result=result,
-                    max_snippet_length=rag_config.answering.max_reference_snippet_length,
-                    seen_chunks=seen_chunks,
-                    plan_filters=plan_filters,
+            step_candidates = self._collect_candidates_from_result(
+                result=result,
+                max_snippet_length=rag_config.answering.max_reference_snippet_length,
+                seen_chunks=seen_chunks,
+                plan_filters=plan_filters,
+            )
+            candidates.extend(step_candidates)
+            retrieval_steps.append(
+                QARetrievalStep(
+                    filters=plan_filters,
+                    returned_count=len(step_candidates),
+                    candidates=[self._candidate_to_debug_item(item) for item in step_candidates],
                 )
             )
             if len(candidates) >= rag_config.retrieval.top_k:
@@ -152,6 +169,8 @@ class QAService:
         if rag_config.retrieval.enable_rerank:
             candidates = self._rerank_candidates(question=question, route=route, candidates=candidates)
 
+        self._last_retrieval_steps = retrieval_steps
+        self._last_reranked_candidates = [self._candidate_to_debug_item(item) for item in candidates]
         references = [candidate["reference"] for candidate in candidates[: rag_config.retrieval.top_k]]
         logger.info(
             "qa_retrieval_route_completed intent=%s references=%s rerank=%s",
@@ -160,6 +179,42 @@ class QAService:
             rag_config.retrieval.enable_rerank,
         )
         return references
+
+    def _build_debug_trace(self, *, question: str, references: list[QAReference]) -> QADebugTrace:
+        route = classify_query_route(question)
+        query_plan = build_query_plan(route)
+        structured_context, context_blocks = build_structured_context_bundle(question, references)
+        retrieval_steps = getattr(self, "_last_retrieval_steps", [])
+        reranked_results = getattr(self, "_last_reranked_candidates", [])
+        rerank_enabled = bool(getattr(self, "_last_rerank_enabled", False))
+        return QADebugTrace(
+            route_intent=route.intent,
+            rerank_enabled=rerank_enabled,
+            query_plan=query_plan,
+            retrieval_steps=retrieval_steps,
+            reranked_results=reranked_results,
+            context_blocks=context_blocks,
+            structured_context=structured_context,
+        )
+
+    def _build_message_response(self, message) -> QAMessageResponse:
+        references_json = None
+        debug_trace = None
+        payload = message.references_json
+        if isinstance(payload, list):
+            references_json = [QAReference.model_validate(item) for item in payload]
+        elif isinstance(payload, dict):
+            raw_references = payload.get("references") or []
+            raw_debug_trace = payload.get("debug_trace")
+            references_json = [QAReference.model_validate(item) for item in raw_references]
+            if raw_debug_trace:
+                debug_trace = QADebugTrace.model_validate(raw_debug_trace)
+        return QAMessageResponse(
+            role=message.role,
+            content=message.content,
+            references_json=references_json,
+            debug_trace=debug_trace,
+        )
 
     def _collect_candidates_from_result(
         self,
@@ -298,6 +353,28 @@ class QAService:
                 return "core_answer"
             return "qa_pair"
         return "general"
+
+    def _candidate_to_debug_item(self, candidate: dict) -> QARetrievalCandidate:
+        reference: QAReference = candidate["reference"]
+        return QARetrievalCandidate(
+            file_name=reference.file_name,
+            chunk_index=reference.chunk_index,
+            section_title=reference.section_title,
+            content_type_hint=reference.content_type_hint,
+            document_kind=reference.document_kind,
+            context_role=reference.context_role,
+            distance=candidate.get("distance"),
+            retrieval_rank=candidate.get("retrieval_rank"),
+            rerank_score=candidate.get("rerank_score"),
+            matched_filters=candidate.get("plan_filters") or {},
+        )
+
+    def _log_debug_trace(self, session_id: int, debug_trace: QADebugTrace) -> None:
+        logger.info(
+            "qa_debug_trace session_id=%s trace=%s",
+            session_id,
+            json.dumps(debug_trace.model_dump(), ensure_ascii=False),
+        )
 
     def _get_or_create_session(self, user_id: int, knowledge_base_id: int, session_id: int | None, question: str) -> QASession:
         if session_id is not None:

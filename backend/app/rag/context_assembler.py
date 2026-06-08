@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from app.rag.query_router import classify_query_route
-from app.schemas.qa import QAReference
+from app.schemas.qa import QAContextBlock, QAReference
 
 
 ROLE_LABELS = {
@@ -26,8 +26,13 @@ ROLE_ORDER_BY_INTENT = {
 
 
 def build_structured_context(question: str, references: list[QAReference]) -> str:
+    context_text, _ = build_structured_context_bundle(question, references)
+    return context_text
+
+
+def build_structured_context_bundle(question: str, references: list[QAReference]) -> tuple[str, list[QAContextBlock]]:
     if not references:
-        return "No retrieved context."
+        return "当前没有可用的检索上下文。", []
 
     route = classify_query_route(question)
     grouped: dict[str, list[QAReference]] = defaultdict(list)
@@ -37,6 +42,7 @@ def build_structured_context(question: str, references: list[QAReference]) -> st
 
     ordered_roles = ROLE_ORDER_BY_INTENT.get(route.intent, ROLE_ORDER_BY_INTENT["general"])
     blocks: list[str] = []
+    context_blocks: list[QAContextBlock] = []
     used_roles: set[str] = set()
 
     for role in ordered_roles:
@@ -45,13 +51,15 @@ def build_structured_context(question: str, references: list[QAReference]) -> st
             continue
         used_roles.add(role)
         blocks.append(_render_block(role, items))
+        context_blocks.append(_build_context_block(role, items))
 
     for role, items in grouped.items():
         if role in used_roles:
             continue
         blocks.append(_render_block(role, items))
+        context_blocks.append(_build_context_block(role, items))
 
-    return "\n\n".join(blocks)
+    return "\n\n".join(blocks), context_blocks
 
 
 def infer_context_role(reference: QAReference) -> str:
@@ -73,9 +81,13 @@ def _render_block(role: str, references: list[QAReference]) -> str:
     label = ROLE_LABELS.get(role, role)
     lines = [f"## {label}"]
     for index, reference in enumerate(references, start=1):
-        meta_parts = [f"file={reference.file_name}", f"chunk={reference.chunk_index}"]
+        meta_parts = [f"文件={reference.file_name}", f"分块={reference.chunk_index}"]
         if reference.section_title:
-            meta_parts.append(f"section={reference.section_title}")
+            meta_parts.append(f"章节={reference.section_title}")
         lines.append(f"[{index}] {' | '.join(meta_parts)}")
         lines.append(reference.snippet.strip())
     return "\n".join(lines)
+
+
+def _build_context_block(role: str, references: list[QAReference]) -> QAContextBlock:
+    return QAContextBlock(role=role, title=ROLE_LABELS.get(role, role), references=references)

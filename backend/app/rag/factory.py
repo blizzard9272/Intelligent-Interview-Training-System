@@ -72,4 +72,6 @@ def _prefix_general_knowledge_answer(answer: str) -> str:
         return "据我所知，当前暂时无法生成可用回答。"
     if normalized.startswith("据我所知"):
         return normalized
-    return f"据我所知，{normalized}"
+    if normalized.startswith("⚠️") or normalized.startswith(">"):
+        return f"据我所知，以下内容基于通用知识补充，仅供参考。\n\n{normalized}"
+    return f"据我所知，以下内容基于通用知识补充，仅供参考。\n\n{normalized}"

@@ -98,22 +98,19 @@
             :message="item"
             collapsible
             :references-expanded="isReferenceExpanded(index)"
+            :debug-expanded="isDebugExpanded(index)"
             @toggle-references="toggleReferences(index)"
+            @toggle-debug="toggleDebug(index)"
           />
         </div>
 
         <footer class="composer">
-          <div class="composer-head">
-            <strong>继续提问</strong>
-            <span class="meta-text">按 `Ctrl + Enter` 发送当前问题。</span>
-          </div>
           <el-input
             v-model="question"
             type="textarea"
             :rows="4"
             resize="none"
             placeholder="围绕当前知识库输入一个基于资料的问题..."
-            @keydown.ctrl.enter.prevent="handleAsk"
           />
           <div class="composer-actions">
             <div class="composer-status">
@@ -136,7 +133,7 @@ import { onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import {
-  askQuestion,
+  askQuestionStream,
   deleteQASession,
   getQASessionDetail,
   getQASessions,
@@ -164,6 +161,8 @@ const deletingSessionId = ref<number | null>(null);
 const message = ref("");
 const errorMessage = ref("");
 const expandedReferenceMap = ref<Record<number, boolean>>({});
+const expandedDebugMap = ref<Record<number, boolean>>({});
+const streamingMessageIndex = ref<number | null>(null);
 
 function isReferenceExpanded(index: number) {
   return Boolean(expandedReferenceMap.value[index]);
@@ -173,6 +172,17 @@ function toggleReferences(index: number) {
   expandedReferenceMap.value = {
     ...expandedReferenceMap.value,
     [index]: !expandedReferenceMap.value[index],
+  };
+}
+
+function isDebugExpanded(index: number) {
+  return Boolean(expandedDebugMap.value[index]);
+}
+
+function toggleDebug(index: number) {
+  expandedDebugMap.value = {
+    ...expandedDebugMap.value,
+    [index]: !expandedDebugMap.value[index],
   };
 }
 
@@ -204,8 +214,10 @@ async function loadSessionDetail(sessionId: number) {
   activeSessionId.value = sessionId;
   errorMessage.value = "";
   expandedReferenceMap.value = {};
+  expandedDebugMap.value = {};
   try {
     const detail = await getQASessionDetail(sessionId);
+    selectedKnowledgeBaseId.value = detail.knowledge_base_id;
     messages.value = detail.messages;
   } catch {
     errorMessage.value = "加载会话详情失败。";
@@ -229,6 +241,7 @@ async function startNewSession() {
   message.value = "已开始新的会话。";
   errorMessage.value = "";
   expandedReferenceMap.value = {};
+  expandedDebugMap.value = {};
   await clearSessionQuery();
 }
 
@@ -243,6 +256,7 @@ async function handleDeleteSession(sessionId: number) {
       activeSessionId.value = undefined;
       messages.value = [];
       expandedReferenceMap.value = {};
+      expandedDebugMap.value = {};
       await clearSessionQuery();
     }
 
@@ -278,24 +292,84 @@ async function handleAsk() {
   errorMessage.value = "";
   message.value = "";
   try {
-    const result = await askQuestion({
-      knowledge_base_id: selectedKnowledgeBaseId.value,
-      question: question.value,
-      session_id: activeSessionId.value,
-    });
-    activeSessionId.value = result.session_id;
+    const currentQuestion = question.value;
+    const userMessage: QAMessage = {
+      role: "user",
+      content: currentQuestion,
+      references_json: null,
+    };
+    const assistantMessage: QAMessage = {
+      role: "assistant",
+      content: "",
+      references_json: null,
+    };
+    messages.value = [...messages.value, userMessage, assistantMessage];
+    streamingMessageIndex.value = messages.value.length - 1;
     question.value = "";
-    message.value = "回答已生成。";
-    await Promise.all([loadSessions(), loadSessionDetail(result.session_id)]);
+    expandedReferenceMap.value = {};
+    expandedDebugMap.value = {};
+
+    await askQuestionStream(
+      {
+        knowledge_base_id: selectedKnowledgeBaseId.value,
+        question: currentQuestion,
+        session_id: activeSessionId.value,
+      },
+      {
+        onMeta: (event) => {
+          activeSessionId.value = event.session_id;
+        },
+        onDelta: (event) => {
+          if (streamingMessageIndex.value === null) {
+            return;
+          }
+          const nextMessages = [...messages.value];
+          const current = nextMessages[streamingMessageIndex.value];
+          if (!current) {
+            return;
+          }
+          nextMessages[streamingMessageIndex.value] = {
+            ...current,
+            content: `${current.content}${event.content}`,
+          };
+          messages.value = nextMessages;
+        },
+        onFinal: async (event) => {
+          if (streamingMessageIndex.value !== null) {
+            const nextMessages = [...messages.value];
+            const current = nextMessages[streamingMessageIndex.value];
+            if (current) {
+              nextMessages[streamingMessageIndex.value] = {
+                ...current,
+                references_json: event.references,
+                debug_trace: event.debug_trace ?? null,
+              };
+              messages.value = nextMessages;
+            }
+          }
+          activeSessionId.value = event.session_id;
+          message.value = "回答已生成。";
+          await loadSessions();
+        },
+      }
+    );
   } catch (error: any) {
+    if (streamingMessageIndex.value !== null) {
+      const rollback = [...messages.value];
+      rollback.splice(Math.max(0, rollback.length - 2), 2);
+      messages.value = rollback;
+    }
     if (error?.code === "ECONNABORTED") {
       errorMessage.value = "问答请求超时，模型响应时间过长。";
+    } else if (error?.message) {
+      errorMessage.value = String(error.message);
     } else if (error?.response?.data?.detail) {
       errorMessage.value = String(error.response.data.detail);
     } else {
       errorMessage.value = "问答失败，请稍后重试。";
     }
   } finally {
+    streamingMessageIndex.value = null;
     asking.value = false;
   }
 }
@@ -340,6 +414,10 @@ watch(
 .qa-conversation {
   display: flex;
   flex-direction: column;
+}
+
+.qa-conversation {
+  min-height: 80vh;
 }
 
 .qa-sidebar {
@@ -400,9 +478,9 @@ watch(
 .qa-conversation {
   gap: 18px;
   position: sticky;
-  top: 24px;
-  min-height: calc(100vh - 48px);
-  max-height: calc(100vh - 48px);
+  top: 8px;
+  min-height: calc(100vh - 16px);
+  max-height: calc(100vh - 16px);
   overflow: hidden;
 }
 
@@ -423,11 +501,11 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 18px;
-  min-height: 0;
+  min-height: 460px;
   flex: 1;
   overflow-y: auto;
   padding-right: 6px;
-  padding-bottom: 8px;
+  padding-bottom: 16px;
   align-items: stretch;
 }
 

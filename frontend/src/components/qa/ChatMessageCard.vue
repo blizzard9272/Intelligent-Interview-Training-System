@@ -1,7 +1,7 @@
 <template>
   <article class="message-card" :class="roleClass">
     <div class="message-role">{{ roleLabel }}</div>
-    <pre class="message-content">{{ message.content }}</pre>
+    <MarkdownContent class="message-content" :content="message.content" />
 
     <div
       v-if="showReferences"
@@ -18,6 +18,22 @@
         :references="message.references_json ?? []"
       />
     </div>
+
+    <div
+      v-if="showDebugTrace"
+      class="references debug-trace"
+    >
+      <div class="references-toggle-row">
+        <h4>RAG 调试日志</h4>
+        <el-button v-if="collapsible" text @click="$emit('toggle-debug')">
+          {{ debugExpanded ? "收起" : "展开" }}
+        </el-button>
+      </div>
+      <DebugTracePanel
+        v-if="!collapsible || debugExpanded"
+        :trace="message.debug_trace!"
+      />
+    </div>
   </article>
 </template>
 
@@ -25,6 +41,8 @@
 import { computed } from "vue";
 
 import type { QAMessage } from "../../api/qa";
+import DebugTracePanel from "./DebugTracePanel.vue";
+import MarkdownContent from "./MarkdownContent.vue";
 import ReferenceList from "./ReferenceList.vue";
 
 const props = withDefaults(
@@ -32,21 +50,27 @@ const props = withDefaults(
     message: QAMessage;
     collapsible?: boolean;
     referencesExpanded?: boolean;
+    debugExpanded?: boolean;
   }>(),
   {
     collapsible: false,
     referencesExpanded: false,
+    debugExpanded: false,
   }
 );
 
 defineEmits<{
   (event: "toggle-references"): void;
+  (event: "toggle-debug"): void;
 }>();
 
 const roleClass = computed(() => (props.message.role === "assistant" ? "assistant" : "user"));
 const roleLabel = computed(() => (props.message.role === "assistant" ? "助手" : "你"));
 const showReferences = computed(
   () => props.message.role === "assistant" && Boolean(props.message.references_json?.length)
+);
+const showDebugTrace = computed(
+  () => props.message.role === "assistant" && Boolean(props.message.debug_trace)
 );
 </script>
 
@@ -72,9 +96,6 @@ const showReferences = computed(
 
 .message-content {
   margin: 0;
-  white-space: pre-wrap;
-  font-family: "Segoe UI", "PingFang SC", sans-serif;
-  line-height: 1.6;
 }
 
 .references {

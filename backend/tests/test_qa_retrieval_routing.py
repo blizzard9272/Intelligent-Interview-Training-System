@@ -141,6 +141,17 @@ class QAServiceRetrievalRoutingTests(unittest.TestCase):
         self.assertEqual(references[1].file_name, "guide.md")
         self.assertEqual(references[2].file_name, "qa.md")
         self.assertEqual(references[3].file_name, "extra.md")
+        self.assertEqual(len(service._last_retrieval_steps), 5)
+        self.assertEqual(service._last_retrieval_steps[0].filters, {"content_type_hint": "concept_explanation"})
+        self.assertEqual(service._last_reranked_candidates[0].file_name, "rag.md")
+
+        debug_trace = service._build_debug_trace(
+            question="什么是 RAG？它和微调有什么区别？",
+            references=references,
+        )
+        self.assertEqual(debug_trace.route_intent, "concept")
+        self.assertEqual(len(debug_trace.retrieval_steps), 5)
+        self.assertIn("## 核心回答", debug_trace.structured_context)
 
 
 if __name__ == "__main__":
