@@ -1,108 +1,72 @@
-# 本地开发启动指南
+# 环境搭建指南
 
-## 1. 启动目标
+本指南用于帮助你基于当前仓库启动前后端开发环境，并完成 PostgreSQL / PGVector 相关准备。
 
-本指南用于帮助你基于当前仓库骨架，尽快启动第一版前后端开发环境。
+## 1. 前置条件
+
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL
+- 已安装 `pgvector` 扩展
 
 ## 2. 后端启动
 
-进入目录：
-
-```bash
+```powershell
 cd backend
-```
-
-创建虚拟环境：
-
-```bash
 python -m venv .venv
-```
-
-激活虚拟环境：
-
-```bash
 .venv\Scripts\activate
-```
-
-安装依赖：
-
-```bash
 pip install -r requirements.txt
-```
-
-复制环境变量：
-
-```bash
 copy .env.example .env
-```
-
-修改 `.env` 中的数据库连接：
-
-```env
-DATABASE_URL=postgresql+psycopg://postgres:你的数据库密码@localhost:5432/interview_agent
-DB_AUTO_CREATE=false
 ```
 
 执行数据库迁移：
 
-```bash
-alembic upgrade head
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
 ```
 
-启动服务：
+启动后端：
 
-```bash
+```powershell
 uvicorn app.main:app --reload
 ```
 
-访问：
-
-- 接口文档：`http://localhost:8000/docs`
-- 健康检查：`http://localhost:8000/health`
-
 ## 3. 前端启动
 
-进入目录：
-
-```bash
+```powershell
 cd frontend
-```
-
-安装依赖：
-
-```bash
 npm install
-```
-
-启动开发服务：
-
-```bash
 npm run dev
 ```
 
-默认访问地址：
+## 4. PGVector 验证
 
-- `http://localhost:5173`
+确认数据库已安装扩展：
 
-## 4. 当前骨架状态说明
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+SELECT extname FROM pg_extension WHERE extname = 'vector';
+```
 
-已完成：
+确认 `document_chunks` 表存在并可写入。
 
-- 中文化产品与技术文档
-- FastAPI 项目骨架
-- 用户、知识库、文档、任务、问答、题库接口骨架
-- Vue3 页面骨架
+## 5. 当前项目状态
 
-未完成：
+当前仓库已经不是单纯的骨架状态，而是具备可运行的 RAG 主链路：
 
-- 真实 Celery 文档入库任务执行
-- 真实 Chroma 向量写入
-- 真实 LLM 问答
-- 自动抽题
+- 文档上传与异步入库
+- 文本清洗与 chunk 构建
+- PGVector 向量写入
+- 检索、重排、回答生成
+- 引用返回与 debug trace
 
-## 5. 推荐下一步开发顺序
+## 6. 初次验证建议
 
-1. 先把认证接口跑通
-2. 再完成知识库 CRUD
-3. 再把文档上传和任务状态串起来
-4. 最后接入 RAG
+推荐按以下顺序验证：
+
+1. 创建用户与知识库
+2. 上传一篇 Markdown 文档
+3. 等待入库完成
+4. 查看文档 chunk
+5. 发起一次问答
+6. 检查引用与 debug trace 是否正常返回
