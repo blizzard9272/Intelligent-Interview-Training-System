@@ -24,9 +24,10 @@ def build_grounded_answer(question: str, references: list[QAReference]) -> str:
             return ""
         return (
             "⚠️ 当前知识库未检索到足够证据。\n\n"
-            "据我所知，以下内容基于通用知识补充，仅供参考。\n\n"
+            "据我目前已知，以下内容基于通用知识补充，仅供参考。\n\n"
             "RAG（Retrieval-Augmented Generation，检索增强生成）是一种先检索外部知识，再结合模型生成答案的方法。"
-            "它的核心价值是让回答尽量建立在可追溯资料之上，从而减少幻觉，并提升时效性与专业性。"
+            "它的核心价值是让回答尽量建立在可追溯资料之上，从而减少幻觉，并提升时效性与专业性。\n\n"
+            "如果你希望我结合你的资料给出更准确的回答，请上传与该主题相关的笔记、面试题或技术文档。"
         )
 
     _, context_blocks = build_structured_context_bundle(question, references)

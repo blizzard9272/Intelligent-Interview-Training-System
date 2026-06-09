@@ -37,8 +37,8 @@ class FakeVectorStore:
 
         if current_filter == {"content_type_hint": "concept_explanation"}:
             return {
-                "documents": [["RAG 是一种结合检索与生成的方式。"]],
-                "metadatas": [[{"document_id": 1, "file_name": "rag.md", "chunk_index": 0, "content_type_hint": "concept_explanation", "document_kind": "concept_guide", "section_title": "RAG 定义", "starts_with_question": False}]],
+                "documents": [["RAG 的全称是 Retrieval-Augmented Generation。RAG 是一种结合检索与生成的方式。"]],
+                "metadatas": [[{"document_id": 1, "file_name": "rag.md", "chunk_index": 0, "content_type_hint": "concept_explanation", "document_kind": "concept_guide", "section_title": "什么是RAG", "starts_with_question": False}]],
                 "distances": [[0.42]],
             }
         if current_filter == {"content_type_hint": "question_answer"}:
@@ -152,6 +152,26 @@ class QAServiceRetrievalRoutingTests(unittest.TestCase):
         self.assertEqual(debug_trace.route_intent, "concept")
         self.assertEqual(len(debug_trace.retrieval_steps), 5)
         self.assertIn("## 核心回答", debug_trace.structured_context)
+
+    def test_collect_candidates_builds_sentence_aware_snippet(self) -> None:
+        service = QAService(self.db)
+        long_doc = "第一句解释定义。第二句继续补充。第三句还在展开。第四句用于验证截断不要落在半句话中。"
+        result = {
+            "documents": [[long_doc]],
+            "metadatas": [[{"document_id": 1, "file_name": "rag.md", "chunk_index": 0, "content_type_hint": "concept_explanation", "document_kind": "concept_guide", "section_title": "什么是RAG", "starts_with_question": False}]],
+            "distances": [[0.1]],
+        }
+        candidates = service._collect_candidates_from_result(
+            result=result,
+            max_snippet_length=25,
+            seen_chunks=set(),
+            plan_filters={},
+        )
+        self.assertEqual(len(candidates), 1)
+        snippet = candidates[0]["reference"].snippet
+        self.assertNotEqual(snippet[-1], "开")
+        self.assertNotEqual(snippet[-1], "展")
+        self.assertLess(len(snippet), len(long_doc))
 
 
 if __name__ == "__main__":

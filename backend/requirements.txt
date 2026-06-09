@@ -15,6 +15,7 @@ celery==5.5.3
 langchain==0.3.26
 langchain-community==0.3.27
 chromadb==1.0.15
+pgvector==0.3.6
 pymupdf==1.26.3
 pdfplumber==0.11.7
 PyYAML==6.0.2

@@ -14,6 +14,10 @@ def load_markdown_file(file_path: str) -> list[LoadedSection]:
         return [LoadedSection(text=clean_text(content))]
 
     sections: list[LoadedSection] = []
+    preface = clean_text(content[: matches[0].start()])
+    if preface:
+        sections.append(LoadedSection(text=preface))
+
     for index, match in enumerate(matches):
         start = match.end()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(content)

@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models.document import Document
-from app.rag.vector_store import ChromaVectorStore
+from app.rag.vector_store import PGVectorStore
 from app.utils import delete_file_if_exists
 
 
@@ -51,7 +51,7 @@ class DocumentService:
         document = self.get_by_id(user_id, document_id)
         if not document:
             return False
-        ChromaVectorStore().delete_document_chunks(document.id)
+        PGVectorStore(self.db).delete_document_chunks(document.id)
         delete_file_if_exists(document.file_path)
         self.db.delete(document)
         self.db.commit()
@@ -62,7 +62,7 @@ class DocumentService:
         if not document:
             return []
 
-        result = ChromaVectorStore().get_document_chunks(user_id=user_id, document_id=document_id)
+        result = PGVectorStore(self.db).get_document_chunks(user_id=user_id, document_id=document_id)
         documents = result.get("documents") or []
         metadatas = result.get("metadatas") or []
 

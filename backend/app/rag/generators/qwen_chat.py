@@ -37,7 +37,8 @@ class QwenChatProvider:
         context_text = build_structured_context(question, references)
         no_reference_guidance = (
             "No document reference was retrieved for this question. "
-            "You may answer from your general knowledge, but do not claim the answer is grounded in uploaded files."
+            "If you answer from general knowledge, explicitly start with '据我目前已知' and end by asking the user to upload relevant materials. "
+            "Do not explain your own memory or context-window mechanics unless the user explicitly asks about them."
             if not references
             else ""
         )

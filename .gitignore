@@ -67,3 +67,6 @@ storage/uploads/*
 .cache/
 tmp/
 temp/
+
+# Local RAG experiment data
+data/

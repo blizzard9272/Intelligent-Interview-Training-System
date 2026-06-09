@@ -10,7 +10,7 @@ from app.db.models.qa import QAMessage, QASession
 from app.rag.factory import generate_answer, get_embedding_provider
 from app.rag.context_assembler import build_structured_context_bundle
 from app.rag.query_router import build_query_plan, classify_query_route
-from app.rag.vector_store import ChromaVectorStore
+from app.rag.vector_store import PGVectorStore
 from app.schemas.qa import (
     AskRequest,
     AskResponse,
@@ -244,7 +244,7 @@ class QAService:
                         document_id=document_id,
                         file_name=str(metadata.get("file_name", "")),
                         chunk_index=chunk_index,
-                        snippet=doc_text[:max_snippet_length],
+                        snippet=self._build_reference_snippet(doc_text, max_snippet_length),
                         section_title=str(metadata.get("section_title", "")).strip() or None,
                         content_type_hint=str(metadata.get("content_type_hint", "")).strip() or None,
                         document_kind=str(metadata.get("document_kind", "")).strip() or None,
@@ -272,6 +272,7 @@ class QAService:
             raw_text = str(candidate.get("raw_text", "")).strip().lower()
             distance = candidate.get("distance")
             retrieval_rank = int(candidate.get("retrieval_rank", 0))
+            chunk_index = int(metadata.get("chunk_index", 0))
 
             score = 0.0
 
@@ -286,6 +287,13 @@ class QAService:
                 score += max(0.0, 1.5 - float(distance))
 
             score += max(0.0, 1.0 - (retrieval_rank * 0.15))
+            score += self._definition_priority_score(
+                question=question,
+                section_title=section_title,
+                raw_text=raw_text,
+                content_type_hint=content_type_hint,
+                chunk_index=chunk_index,
+            )
 
             rescored.append({**candidate, "rerank_score": score})
 
@@ -337,6 +345,56 @@ class QAService:
             if candidate_value == expected_value:
                 return max(0.0, base - (index * step))
         return 0.0
+
+    def _definition_priority_score(
+        self,
+        *,
+        question: str,
+        section_title: str,
+        raw_text: str,
+        content_type_hint: str,
+        chunk_index: int,
+    ) -> float:
+        normalized_question = question.strip().lower()
+        if not normalized_question:
+            return 0.0
+
+        is_definition_question = any(
+            token in normalized_question
+            for token in ("什么是", "是什么", "定义", "介绍一下", "谈谈什么是", "了解吗")
+        )
+        if not is_definition_question:
+            return 0.0
+
+        score = 0.0
+        if content_type_hint == "concept_explanation":
+            score += 1.8
+        if chunk_index == 0:
+            score += 1.6
+        if any(token in section_title for token in ("什么是", "定义", "概念", "简介", "介绍")):
+            score += 1.8
+        if any(token in raw_text[:120] for token in ("的全称是", "是一种", "指的是", "检索增强生成")):
+            score += 2.2
+        if len(raw_text) <= 220:
+            score += 0.8
+        return score
+
+    def _build_reference_snippet(self, doc_text: str, max_snippet_length: int) -> str:
+        cleaned = doc_text.strip()
+        if len(cleaned) <= max_snippet_length:
+            return cleaned
+
+        boundary_window = cleaned[:max_snippet_length + 80]
+        sentence_endings = [
+            boundary_window.rfind(token)
+            for token in ("。", "！", "？", "\n\n", "\n", "；", ". ")
+        ]
+        cutoff = max(sentence_endings)
+        if cutoff >= max(80, int(max_snippet_length * 0.6)):
+            if boundary_window[cutoff : cutoff + 2] == ". ":
+                cutoff += 1
+            return boundary_window[: cutoff + 1].strip()
+        return cleaned[:max_snippet_length].rstrip() + "..."
 
     def _build_context_role(self, metadata: dict) -> str:
         content_type_hint = str(metadata.get("content_type_hint", "")).strip().lower()
@@ -400,5 +458,5 @@ class QAService:
 
     def _get_vector_store(self):
         if self.vector_store is None:
-            self.vector_store = ChromaVectorStore()
+            self.vector_store = PGVectorStore(self.db)
         return self.vector_store

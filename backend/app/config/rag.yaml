@@ -13,4 +13,4 @@ chunking:
 answering:
   include_references: true
   fallback_when_empty: true
-  max_reference_snippet_length: 300
+  max_reference_snippet_length: 600

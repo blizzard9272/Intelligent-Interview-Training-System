@@ -4,7 +4,7 @@ from app.db.models.document import Document
 from app.db.models.ingestion_task import IngestionTask
 from app.db.models.knowledge_base import KnowledgeBase
 from app.db.session import SessionLocal
-from app.rag.vector_store import ChromaVectorStore
+from app.rag.vector_store import PGVectorStore
 
 
 def main() -> None:
@@ -31,13 +31,11 @@ def main() -> None:
     finally:
         db.close()
 
-    store = ChromaVectorStore()
-    result = store.collection.get(include=["metadatas"])
-    ids = result.get("ids") or []
-    metadatas = result.get("metadatas") or []
-    print("\n=== Chroma Collection ===")
-    print(f"total_chunks={len(ids)}")
-    for metadata in metadatas[-10:]:
+    store = PGVectorStore()
+    metadatas = store.list_chunk_metadatas(limit=10)
+    print("\n=== PGVector Chunks ===")
+    print(f"total_chunks={store.count_chunks()}")
+    for metadata in reversed(metadatas):
         print(metadata)
 
 

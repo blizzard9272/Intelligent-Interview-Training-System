@@ -69,9 +69,9 @@ def generate_answer(question: str, references: list[QAReference]) -> str:
 def _prefix_general_knowledge_answer(answer: str) -> str:
     normalized = answer.strip()
     if not normalized:
-        return "据我所知，当前暂时无法生成可用回答。"
-    if normalized.startswith("据我所知"):
+        return "据我目前已知，当前暂时无法生成可用回答。建议上传相关资料后再试一次。"
+    if normalized.startswith("据我目前已知"):
         return normalized
     if normalized.startswith("⚠️") or normalized.startswith(">"):
-        return f"据我所知，以下内容基于通用知识补充，仅供参考。\n\n{normalized}"
-    return f"据我所知，以下内容基于通用知识补充，仅供参考。\n\n{normalized}"
+        return f"据我目前已知，以下内容基于通用知识补充，仅供参考。\n\n{normalized}\n\n如果你希望我结合你的资料给出更准确的回答，请上传相关文档。"
+    return f"据我目前已知，以下内容基于通用知识补充，仅供参考。\n\n{normalized}\n\n如果你希望我结合你的资料给出更准确的回答，请上传相关文档。"

@@ -38,6 +38,15 @@ class LocalGeneratorTests(unittest.TestCase):
         self.assertNotIn("Structured retrieved context", answer)
         self.assertIn("RAG 是一种先检索外部知识", answer)
 
+    def test_build_grounded_answer_without_references_uses_controlled_fallback(self) -> None:
+        rag_config = SimpleNamespace(answering=SimpleNamespace(fallback_when_empty=True))
+
+        with patch("app.rag.generators.local_generator.get_rag_config", return_value=rag_config):
+            answer = build_grounded_answer("什么是RAG？", [])
+
+        self.assertIn("据我目前已知", answer)
+        self.assertIn("上传与该主题相关的笔记", answer)
+
 
 if __name__ == "__main__":
     unittest.main()

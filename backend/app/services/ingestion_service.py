@@ -8,7 +8,7 @@ from app.rag.factory import get_embedding_provider
 from app.rag.document_profile import classify_document_kind
 from app.rag.loaders.factory import load_sections
 from app.rag.splitters.chunker import build_chunks
-from app.rag.vector_store import ChromaVectorStore
+from app.rag.vector_store import PGVectorStore
 from app.utils import get_ingestion_config
 
 
@@ -16,7 +16,7 @@ class IngestionService:
     def __init__(self, db: Session):
         self.db = db
         self.embedding_provider = get_embedding_provider()
-        self.vector_store = ChromaVectorStore()
+        self.vector_store = PGVectorStore(db)
 
     def process_document(self, document_id: int, task_id: int) -> None:
         ingestion_config = get_ingestion_config()

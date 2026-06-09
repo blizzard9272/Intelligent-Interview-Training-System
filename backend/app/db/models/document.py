@@ -23,3 +23,4 @@ class Document(TimestampMixin, Base):
     user = relationship("User", back_populates="documents")
     knowledge_base = relationship("KnowledgeBase", back_populates="documents")
     ingestion_tasks = relationship("IngestionTask", back_populates="document", cascade="all, delete-orphan")
+    chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")

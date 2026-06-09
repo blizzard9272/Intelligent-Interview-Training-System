@@ -6,7 +6,7 @@ from app.db.models.document import Document
 from app.db.models.ingestion_task import IngestionTask
 from app.db.models.knowledge_base import KnowledgeBase
 from app.db.session import SessionLocal
-from app.rag.vector_store import ChromaVectorStore
+from app.rag.vector_store import PGVectorStore
 
 
 class InspectRAGStateTests(unittest.TestCase):
@@ -34,16 +34,15 @@ class InspectRAGStateTests(unittest.TestCase):
         finally:
             db.close()
 
-        store = ChromaVectorStore()
-        result = store.collection.get(include=["metadatas"])
-        ids = result.get("ids") or []
-        metadatas = result.get("metadatas") or []
-        print("=== Chroma Collection ===")
-        print(f"total_chunks={len(ids)}")
-        for metadata in metadatas[-10:]:
+        store = PGVectorStore()
+        metadatas = store.list_chunk_metadatas(limit=10)
+        total_chunks = store.count_chunks()
+        print("=== PGVector Chunks ===")
+        print(f"total_chunks={total_chunks}")
+        for metadata in reversed(metadatas):
             print(metadata)
 
-        self.assertIsNotNone(ids)
+        self.assertGreaterEqual(total_chunks, 0)
 
 
 if __name__ == "__main__":
