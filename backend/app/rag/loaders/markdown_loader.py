@@ -18,11 +18,26 @@ def load_markdown_file(file_path: str) -> list[LoadedSection]:
     if preface:
         sections.append(LoadedSection(text=preface))
 
+    heading_stack: list[str] = []
     for index, match in enumerate(matches):
         start = match.end()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(content)
         body = clean_text(content[start:end])
         if not body:
             continue
-        sections.append(LoadedSection(text=body, section_title=clean_text(match.group(2).strip())))
+        level = len(match.group(1))
+        title = clean_text(match.group(2).strip())
+        if not title:
+            continue
+
+        heading_stack = heading_stack[: level - 1]
+        heading_stack.append(title)
+        sections.append(
+            LoadedSection(
+                text=body,
+                section_title=title,
+                section_level=level,
+                section_path=tuple(heading_stack),
+            )
+        )
     return sections or [LoadedSection(text=clean_text(content))]
